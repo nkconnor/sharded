@@ -1,5 +1,17 @@
-//! A (to be) generic sharded lock mechanism for performant read/writes on hash-based
-//! collections like HashMap, HashSet.
+//! A generic sharded locking mechanism for hash based collections to speed up concurrent reads/writes. `Shard::new` splits
+//! the underlying collection into N shards each with its own lock. Calling `read(key)` or `write(key)`
+//! returns a guard for only a single shard. The underlying locks should be generic, so you can use
+//! it with any `Mutex` or `RwLock` in `std::sync` or `parking_lot`.
+//!
+//! In a probably wrong and unscientific test of concurrent readers/single writer,
+//! `shard_lock` is **100-∞∞x faster** (deadlocks?) than [`dashmap`](https://github.com/xacrimon/dashmap), and
+//! **13x faster** than a single `parking_lot::RwLock`. Carrying `Shard<RwLock<T>>` is possibly more obvious
+//! and simpler than other approaches. The library has a very small footprint at ~100 loc and optionally no
+//! dependencies.
+//!
+//! `shard_lock` is flexible enough to shard any hash based collection such as `HashMap`, `HashSet`, `BTreeMap`, and `BTreeSet`.
+//!
+//! _**Warning:** shard_lock is in early development and unsuitable for production. The API is undergoing changes and is not dependable._
 #![deny(unsafe_code)]
 #![allow(dead_code)]
 #![allow(unused_macros)]
@@ -11,6 +23,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::hash::Hash;
 
+/// Generic locking implementation.
 pub trait Lock<T> {
     #[rustfmt::skip]
     type ReadGuard<'a> where T: 'a;
@@ -153,6 +166,7 @@ impl<T> Shard<parking_lot::RwLock<T>> {
     }
 }
 
+/// So you don't have to turbofish
 #[macro_export]
 macro_rules! shard {
     ($($arg:tt)*) => {{
