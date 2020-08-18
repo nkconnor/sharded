@@ -8,8 +8,8 @@ returns a guard for only a single shard. The underlying locks should be generic,
 it with any `Mutex` or `RwLock` in `std::sync` or `parking_lot`.
 
 In a probably wrong and unscientific test of concurrent readers/single writer, 
-`shard_lock` is **100x-∞∞∞**(deadlocks..) faster than [`dashmap`](https://github.com/xacrimon/dashmap), and
-**13x** faster than a single `parking_lot::RwLock`. Carrying `Shard<RwLock<T>>` is possibly more obvious
+`shard_lock` is **100-∞∞x faster** (deadlocks..) than [`dashmap`](https://github.com/xacrimon/dashmap), and
+**13x faster** than a single `parking_lot::RwLock`. Carrying `Shard<RwLock<T>>` is possibly more obvious
 and simpler than other approaches. The library has a very small footprint at ~100 loc and optionally no
 dependencies.
 
