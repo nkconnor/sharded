@@ -164,14 +164,6 @@ impl<T> Shard<parking_lot::RwLock<T>> {
     }
 }
 
-/// So you don't have to turbofish
-#[macro_export]
-macro_rules! shard {
-    ($($arg:tt)*) => {{
-        Shard::<()>::new($($arg)*)
-    }}
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
