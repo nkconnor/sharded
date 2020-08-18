@@ -23,6 +23,8 @@ use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::hash::Hash;
 
+const SHARD_COUNT: usize = 128;
+
 /// Generic locking implementation.
 pub trait Lock<T> {
     #[rustfmt::skip]
@@ -105,15 +107,13 @@ impl<K: Hash> Shard<K> {
         U: Collection<K, V>,
         L: Lock<U>,
     {
-        let shard_count = 250;
-
-        let mut shards = vec![U::with_capacity(inner.len() / shard_count); shard_count];
+        let mut shards = vec![U::with_capacity(inner.len() / SHARD_COUNT); SHARD_COUNT];
 
         inner.into_iter().for_each(|item| {
             // for each item, push it to the appropriate shard
             let i = index(item.key());
-            // Safe because we just initialized shards to `shard_count`
-            // and hash % `shard_count` must be bounded by `shard_count`
+            // Safe because we just initialized shards to `SHARD_COUNT`
+            // and hash % `SHARD_COUNT` must be bounded by `SHARD_COUNT`
             #[allow(unsafe_code)]
             unsafe {
                 shards.get_unchecked_mut(i).insert(item)
@@ -127,11 +127,10 @@ impl<K: Hash> Shard<K> {
 }
 
 fn index<K: Hash>(k: &K) -> usize {
-    let shard_count = 250;
     use std::hash::Hasher;
     let mut s = DefaultHasher::new();
     k.hash(&mut s);
-    (s.finish() as usize % shard_count) as usize
+    (s.finish() as usize % SHARD_COUNT) as usize
 }
 
 //trait ShardOps {
