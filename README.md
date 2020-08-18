@@ -7,14 +7,17 @@ the underlying collection into N shards each with its own lock. Calling `read(ke
 returns a guard for only a single shard. The underlying locks should be generic, so you can use
 it with any `Mutex` or `RwLock` in `std::sync` or `parking_lot`.
 
-In a probably wrong and unscientific test of concurrent readers/single writer, `shard_lock` is **200x-∞**(deadlocks..) faster than `dashmap`, and
-8x faster than a single `parking_lot::RwLock`. Carrying `Shard<RwLock<T>>` is possibly more obvious
+In a probably wrong and unscientific test of concurrent readers/single writer, `shard_lock` is **100x-∞∞∞**(deadlocks..) faster than `dashmap`, and
+**13x** faster than a single `parking_lot::RwLock`. Carrying `Shard<RwLock<T>>` is possibly more obvious
 and simpler than other approaches. The library has a very small footprint at ~100 loc and optionally no
 dependencies.
 
-`shard_lock` is flexible enough to shard any hash based collection such as `HashMap`, `HashSet`, `BTreeMap`, and `BTreeSet`;
+`shard_lock` is flexible enough to shard any hash based collection such as `HashMap`, `HashSet`, `BTreeMap`, and `BTreeSet`.
 
-_**Warning:** shard_lock is in early development and unsuitable for production._ 
+_**Warning:** shard_lock is in early development and unsuitable for production. The API is undergoing changes and is not dependable._
+
+**Feedback and Contributions appreciated!**
+
 
 ## Getting Started
 
@@ -29,7 +32,8 @@ shard_lock = { version = "0.0.1", features = ["parking_lot"] }
 ## Examples
 
 ```rust
-let users = shard!(HashMap::new());
+// or Shard::<()>::new(HashMap::new()); not sure how to get rid of the turbofish..
+let users = shard!(HashMap::new()); 
 
 let guard = users.write(32);
 guard.insert(32, user);
