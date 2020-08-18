@@ -98,10 +98,9 @@ pub struct Shard<T> {
     shards: Vec<T>,
 }
 
-impl<T> Shard<T> {
-    pub fn new<K, V, U, L>(inner: U) -> Shard<L>
+impl<K: Hash> Shard<K> {
+    pub fn new<V, U, L>(inner: U) -> Shard<L>
     where
-        K: Hash,
         V: ExtractShardKey<K>,
         U: Collection<K, V>,
         L: Lock<U>,
@@ -112,7 +111,7 @@ impl<T> Shard<T> {
 
         inner.into_iter().for_each(|item| {
             // for each item, push it to the appropriate shard
-            let i = Self::index(item.key());
+            let i = index(item.key());
             // Safe because we just initialized shards to `shard_count`
             // and hash % `shard_count` must be bounded by `shard_count`
             #[allow(unsafe_code)]
@@ -125,14 +124,14 @@ impl<T> Shard<T> {
 
         Shard { shards }
     }
+}
 
-    fn index<K: Hash>(k: &K) -> usize {
-        let shard_count = 250;
-        use std::hash::Hasher;
-        let mut s = DefaultHasher::new();
-        k.hash(&mut s);
-        (s.finish() as usize % shard_count) as usize
-    }
+fn index<K: Hash>(k: &K) -> usize {
+    let shard_count = 250;
+    use std::hash::Hasher;
+    let mut s = DefaultHasher::new();
+    k.hash(&mut s);
+    (s.finish() as usize % shard_count) as usize
 }
 
 //trait ShardOps {
@@ -156,12 +155,12 @@ impl<T> Shard<T> {
 
 impl<T> Shard<parking_lot::RwLock<T>> {
     pub fn write<K: Hash>(&self, k: &K) -> parking_lot::RwLockWriteGuard<'_, T> {
-        let i = Self::index(k);
+        let i = index(k);
         self.shards.get(i).map(|lock| lock.write()).unwrap()
     }
 
     pub fn read<K: Hash>(&self, k: &K) -> parking_lot::RwLockReadGuard<'_, T> {
-        let i = Self::index(k);
+        let i = index(k);
         self.shards.get(i).map(|lock| lock.read()).unwrap()
     }
 }
@@ -181,8 +180,7 @@ mod tests {
 
     #[test]
     fn read_and_write() {
-        let x = shard!(HashMap::new());
-
+        let x = Shard::new(HashMap::new());
         x.write(&"key".to_string())
             .insert("key".to_string(), "value".to_string());
 
@@ -194,7 +192,7 @@ mod tests {
 
     #[test]
     fn hold_read_and_write() {
-        let map = shard!(HashMap::new());
+        let map = Shard::new(HashMap::new());
 
         let mut write = map.write(&"abc".to_string());
         write.insert("abc".to_string(), "asdf".to_string());

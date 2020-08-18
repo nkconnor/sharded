@@ -7,7 +7,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 fn c_write_read(c: &mut Criterion) {
-    let map: Arc<Shard<RwLock<HashMap<Uuid, ()>>>> = Arc::new(shard!(HashMap::new()));
+    let map: Arc<Shard<RwLock<HashMap<Uuid, ()>>>> = Arc::new(Shard::new(HashMap::new()));
     let readmap = map.clone();
     let mut readers = Vec::new();
     for _ in 0..16 {
