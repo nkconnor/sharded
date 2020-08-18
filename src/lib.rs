@@ -1,42 +1,42 @@
 //! A hash-based RwLock for performant read/writes on hash-based
 //! collections like HashMap, HashSet.
+#![deny(unsafe_code)]
+#![allow(dead_code)]
+#![allow(unused_macros)]
+
 use parking_lot;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::marker::PhantomData;
 
 //trait Lock {
 //    type Inner;
-//    type ReadGuard<'r>;
-//    type WriteGuard<'w>;
 //    fn new(t: Self::Inner) -> Self;
 //
-//    fn read<'r>(&self) -> Self::ReadGuard<'r>;
+//    fn read(&self) -> Box<dyn Deref<Target = Self::Inner>>;
 //}
 //
-//impl<T> Lock for parking_lot::RwLock<T>
-//where
-//    for<'w> T: 'w,
-//    for<'r> T: 'r,
-//{
-//    type Inner = T;
-//    type ReadGuard = parking_lot::RwLockReadGuard<'r, T>;
-//    type WriteGuard = parking_lot::RwLockWriteGuard<'w, T>;
-//    fn new(t: T) -> Self {
-//        parking_lot::RwLock::new(t)
-//    }
 //
-//    fn read<'r>(&self) -> &Self::ReadGuard<'r> {
-//        self.read()
+//
+//    impl<T> Lock for RwLock<T> {
+//        type Inner = T;
+//
+//        fn new(t: T) -> Self {
+//            parking_lot::RwLock::new(t)
+//        }
+//
+//        fn read(&self) -> Box<dyn Deref<Target = T> + '_> {
+//            Box::new(self.read())
+//        }
 //    }
-//}
 
-trait ExtractShardKey<K: Hash> {
+pub trait ExtractShardKey<K: Hash> {
     fn key(&self) -> &K;
 }
 
-trait Collection<K: Hash, Value: ExtractShardKey<K>>: IntoIterator<Item = Value> + Clone {
+pub trait Collection<K: Hash, Value: ExtractShardKey<K>>:
+    IntoIterator<Item = Value> + Clone
+{
     fn with_capacity(capacity: usize) -> Self;
 
     fn insert(&mut self, v: Value);
@@ -56,7 +56,7 @@ impl<K: Hash + Clone + Eq, V: Clone> Collection<K, (K, V)> for HashMap<K, V> {
     }
 
     fn insert(&mut self, v: (K, V)) {
-        std::collections::HashMap::insert(self, v.0, v.1);
+        HashMap::insert(self, v.0, v.1);
     }
 
     fn len(&self) -> usize {
@@ -64,12 +64,12 @@ impl<K: Hash + Clone + Eq, V: Clone> Collection<K, (K, V)> for HashMap<K, V> {
     }
 }
 
-struct Sharded<T> {
+pub struct Sharded<T> {
     shards: Vec<T>,
 }
 
 impl<T> Sharded<T> {
-    fn new<K, V, U>(inner: U) -> Sharded<parking_lot::RwLock<U>>
+    pub fn new<K, V, U>(inner: U) -> Sharded<parking_lot::RwLock<U>>
     where
         K: Hash,
         V: ExtractShardKey<K>,
@@ -84,7 +84,10 @@ impl<T> Sharded<T> {
             let i = Self::index(item.key());
             // Safe because we just initialized shards to `shard_count`
             // and hash % `shard_count` must be bounded by `shard_count`
-            unsafe { shards.get_unchecked_mut(i).insert(item) }
+            #[allow(unsafe_code)]
+            unsafe {
+                shards.get_unchecked_mut(i).insert(item)
+            }
         });
 
         let shards = shards
@@ -105,31 +108,36 @@ impl<T> Sharded<T> {
 }
 
 impl<T> Sharded<parking_lot::RwLock<T>> {
-    fn write<K: Hash>(&self, k: &K) -> Option<parking_lot::RwLockWriteGuard<'_, T>> {
+    pub fn write<K: Hash>(&self, k: &K) -> Option<parking_lot::RwLockWriteGuard<'_, T>> {
         let i = Self::index(k);
         self.shards.get(i).map(|lock| lock.write())
     }
-    fn read<K: Hash>(&self, k: &K) -> Option<parking_lot::RwLockReadGuard<'_, T>> {
+
+    pub fn read<K: Hash>(&self, k: &K) -> Option<parking_lot::RwLockReadGuard<'_, T>> {
         let i = Self::index(k);
         self.shards.get(i).map(|lock| lock.read())
     }
 }
 
+macro_rules! shard {
+    ($($arg:tt)*) => {{
+        Sharded::<()>::new($($arg)*)
+    }}
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use parking_lot::RwLock;
     use std::collections::HashMap;
 
     #[test]
     fn read_and_write() {
-        let x = Sharded::<()>::new(HashMap::new());
+        let x = shard!(HashMap::new());
 
-        {
-            x.write(&"key".to_string())
-                .unwrap()
-                .insert("key".to_string(), "value".to_string());
-        }
+        x.write(&"key".to_string())
+            .unwrap()
+            .insert("key".to_string(), "value".to_string());
+
         assert_eq!(
             x.read(&"key".to_string())
                 .unwrap()
@@ -137,7 +145,17 @@ mod tests {
                 .unwrap(),
             "value"
         );
+    }
 
-        assert_eq!(2 + 2, 4);
+    #[test]
+    fn hold_read_and_write() {
+        let map = shard!(HashMap::new());
+
+        let mut write = map.write(&"abc".to_string()).unwrap();
+        write.insert("abc".to_string(), "asdf".to_string());
+
+        let _read = map.read(&"asdfas".to_string()).unwrap();
+        let _read_too = map.read(&"asdfas".to_string()).unwrap();
+        assert!(_read.is_empty());
     }
 }
