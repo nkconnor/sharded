@@ -73,6 +73,8 @@ pub trait Collection<K: Hash, Value: ExtractShardKey<K>>:
     fn insert(&mut self, v: Value);
 
     fn len(&self) -> usize;
+
+    fn capacity(&self) -> usize;
 }
 
 impl<K: Hash, V> ExtractShardKey<K> for (K, V) {
@@ -92,6 +94,10 @@ impl<K: Hash + Clone + Eq, V: Clone> Collection<K, (K, V)> for HashMap<K, V> {
 
     fn len(&self) -> usize {
         self.len()
+    }
+
+    fn capacity(&self) -> usize {
+        self.capacity()
     }
 }
 
