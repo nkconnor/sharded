@@ -1,36 +1,61 @@
-# shard_lock &emsp; ![Build]
+# sharded &emsp; ![Build]
 
-[Build]: https://github.com/nkconnor/shard_lock/workflows/build/badge.svg
+[Build]: https://github.com/nkconnor/sharded/workflows/build/badge.svg
 
-A generic sharded locking mechanism for hash based collections to speed up concurrent reads/writes. `Shard::new` splits
-the underlying collection into N shards each with its own lock. Calling `read(key)` or `write(key)`
-returns a guard for only a single shard. The underlying locks should be generic, so you can use
-it with any `Mutex` or `RwLock` in `std::sync` or `parking_lot`.
+_**Warning:** This crate is still in early development and undergoing API changes. Contributions, feature requests, and 
+constructive feedback are warmly welcomed._ 
 
-In a probably wrong and unscientific test of concurrent readers/single writer, 
-`shard_lock` is **100-∞∞x faster** (deadlocks?) than [`dashmap`](https://github.com/xacrimon/dashmap), and
-**13x faster** than a single `parking_lot::RwLock`. Carrying `Shard<RwLock<T>>` is possibly more obvious
-and simpler than other approaches. The library has a very small footprint at ~100 loc and optionally no
-dependencies.
+Safe, fast, and obvious concurrent collections for Rust. This crate splits the 
+underlying collection into N shards each with its own lock. Calling `read(key)` or `write(key)`
+returns a guard for a single shard.
 
-`shard_lock` is flexible enough to shard any hash based collection such as `HashMap`, `HashSet`, `BTreeMap`, and `BTreeSet`.
+## Features
 
-_**Warning:** shard_lock is in early development and unsuitable for production. The API is undergoing changes and is not dependable._
+* **Zero unsafe code.** This library uses #![forbid(unsafe_code)]. There are some limitations with the 
+raw locking API that _could cause you to write a bug_, but it should be hard to so!
 
-**Feedback and Contributions appreciated!**
+* **Zero dependencies.** By default, the library only uses `std`. If you'd like to pull in some community
+crates such as `parking_lot`, just use the **3rd-party** feature.
 
+* **Tiny footprint.** The core logic is ~100 lines of code. This may build up over time as utility
+methods and ergonomics are added.
 
-## Getting Started
+* **Extremely fast.** This implementation may be a more performant choice for your workload than some
+of the most popular concurrent hashmaps out there.
+
+* **Flexible API.**. Bring your own lock or collection types. `sharded::Map` is just a type alias for
+`Shard<Lock<Collection<_>>>`. There's support for Sets and Trees, too!
+
+### See Also
+
+- [`dashmap`](https://github.com/xacrimon/dashmap)
+- [`flurry`](todo)
+- [`countrie`](todo)
+
+## Quick Start 
 
 ```toml
 [dependencies]
 
-# Specify support for external locks using feature keys:
-#  - parking_lot (RwLock, Mutex, ..)
-shard_lock = { version = "0.0.1", features = ["parking_lot"] }
+# Optionally use `parking_lot`, `hashbrown`, and `ahash`
+# by specifing the feature "3rd-party"
+
+sharded = { version = "0.1.0", features = ["3rd-party"] }
 ```
 
-## Examples
+**Create a concurrent HashMap**
+
+```rust
+use sharded::Map;
+let concurrent = Map::new()
+
+// or use an existing HashMap,
+
+let concurrent = Shard::from(existing);
+
+```
+
+### Examples
 
 ```rust
 // or Shard::<()>::new(HashMap::new()); not sure how to get rid of the turbofish..
@@ -39,6 +64,20 @@ let users = shard!(HashMap::new());
 let guard = users.write(32);
 guard.insert(32, user);
 ```
+
+### Performance Comparison
+
+If performance matters a lot, probably the best thing to do is to benchmark your application
+with different map implementations in the most realistic setting possible. **Also, a disclaimer**,
+performance testing is _not my specialty_. These measurements were generated using [`jonhoo/bustle`](https://github.com/jonhoo/bustle).
+
+To reproduce the charts, see the `benchmarks` directory. Work is underway to automate testing on a battery
+of cloud instance types and parameters. If you have suggestions on how to improve these benchmarks or new 
+workloads to try - please raise a PR!
+
+
+![Average Performance (read_heavy)](benchmarks/avg_performance_read_heavy.png)
+
 
 ## License
 
