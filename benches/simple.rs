@@ -90,5 +90,41 @@ fn c_write_read_n(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, c_write_read, c_write_read_dash, c_write_read_n);
+fn c_write_read_flurry(c: &mut Criterion) {
+    use flurry::epoch;
+    let map = Arc::new(flurry::HashMap::new());
+    let readmap = map.clone();
+    let mut readers = Vec::new();
+    for _ in 0..16 {
+        let readmap = readmap.clone();
+        let handle = std::thread::spawn(move || {
+            //
+            loop {
+                let guard = epoch::pin();
+                let uuid = Uuid::new_v4();
+                readmap.get(&uuid, &guard);
+            }
+        });
+
+        readers.push(handle);
+    }
+
+    c.bench_function("write_during_reads_flurry", move |b| {
+        let writemap = map.clone();
+        b.iter(move || {
+            //
+            let guard = epoch::pin();
+            let uuid = Uuid::new_v4();
+            writemap.insert(uuid, (), &guard);
+        })
+    });
+}
+
+criterion_group!(
+    benches,
+    c_write_read,
+    c_write_read_dash,
+    c_write_read_n,
+    c_write_read_flurry
+);
 criterion_main!(benches);
