@@ -3,6 +3,11 @@ name = "sharded"
 version = "0.0.1"
 authors = ["nkconnor <nicholas.k.connor@gmail.com>"]
 edition = "2018"
+license = "MIT OR Apache 2.0"
+description = "Safe, fast, and obvious concurrent collections"
+repository = "https://github.com/nkconnor/sharded"
+documentation = "https://docs.rs/sharded"
+readme = "README.md"
 
 [dependencies]
 parking_lot = {version="0.11", optional=true}
