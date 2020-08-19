@@ -1,18 +1,13 @@
 [package]
-name = "shard_lock"
+name = "sharded"
 version = "0.0.1"
 authors = ["nkconnor <nicholas.k.connor@gmail.com>"]
 edition = "2018"
 
-
 [dependencies]
-parking_lot = "0.11"
+parking_lot = {version="0.11", optional=true}
+ahash = {version ="0.4.4", optional = true}
+hashbrown = {version = "0.8.2", optional = true}
 
-[dev-dependencies]
-criterion = "0.3"
-dashmap = "3.11.10"
-uuid = { version = "0.8", features=["v4"] }
-
-[[bench]]
-name = "simple"
-harness = false
+[features]
+3rd-party = ["parking_lot", "ahash", "hashbrown"]
