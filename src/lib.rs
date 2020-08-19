@@ -19,40 +19,38 @@
 #![feature(generic_associated_types)]
 #![feature(in_band_lifetimes)]
 
-#[cfg(feature = "3rd-party")]
+#[cfg(feature = "hash-ahash")]
 use ahash::AHasher as DefaultHasher;
 
-#[cfg(not(feature = "3rd-party"))]
+#[cfg(not(feature = "hash-ahash"))]
 use std::collections::hash_map::DefaultHasher;
 
 use std::hash::Hasher;
 
-#[cfg(feature = "3rd-party")]
+#[cfg(feature = "map-hashbrown")]
 use hashbrown::HashMap;
 
-#[cfg(feature = "3rd-party")]
+#[cfg(feature = "map-hashbrown")]
 use hashbrown::HashSet;
 
-#[cfg(not(feature = "3rd-party"))]
+#[cfg(not(feature = "map-hashbrown"))]
 use std::collections::HashMap;
 
-#[cfg(not(feature = "3rd-party"))]
+#[cfg(not(feature = "map-hashbrown"))]
 use std::collections::HashSet;
 
-#[cfg(feature = "3rd-party")]
-use parking_lot;
+//#[cfg(feature = "3rd-party")]
+//use parking_lot;
 
-#[cfg(feature = "3rd-party")]
-mod parking_lock;
+mod lock;
 
-#[cfg(not(feature = "3rd-party"))]
-mod std_lock;
+pub use lock::RwLock;
 
-#[cfg(feature = "3rd-party")]
-pub type RwLock<T> = parking_lot::RwLock<T>;
+//#[cfg(feature = "3rd-party")]
+//mod parking_lock;
 
-#[cfg(not(feature = "3rd-party"))]
-pub type RwLock<T> = std::sync::RwLock<T>;
+//#[cfg(not(feature = "3rd-party"))]
+//mod std_lock;
 
 /// Sharded lock-based concurrent map using the crate default lock and map implementations.
 pub type Map<K, V> = Shard<RwLock<HashMap<K, V>>>;

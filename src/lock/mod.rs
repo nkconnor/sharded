@@ -1,15 +1,31 @@
+#[cfg(feature = "lock-crossbeam")]
+mod cross;
+
+#[cfg(feature = "lock-parking-lot")]
+mod parking;
+
 use crate::{index, Lock, Shard};
 use std::hash::Hash;
-use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-impl<T> Lock<T> for RwLock<T> {
+#[cfg(feature = "lock-parking-lot")]
+pub type RwLock<T> = parking_lot::RwLock<T>;
+
+#[cfg(feature = "lock-crossbeam")]
+pub type RwLock<T> = crossbeam::sync::ShardedLock<T>;
+
+#[cfg(not(any(feature = "lock-parking-lot", feature = "lock-crossbeam")))]
+pub type RwLock<T> = std::sync::RwLock<T>;
+
+use std::sync::{RwLock as StdRwLock, RwLockReadGuard, RwLockWriteGuard};
+
+impl<T> Lock<T> for StdRwLock<T> {
     #[rustfmt::skip]
     type ReadGuard<'b> where T: 'b = RwLockReadGuard<'b, T>;
     #[rustfmt::skip]
     type WriteGuard<'b> where T: 'b = RwLockWriteGuard<'b, T>;
 
     fn new(t: T) -> Self {
-        RwLock::new(t)
+        StdRwLock::new(t)
     }
 
     fn read(&self) -> Self::ReadGuard<'_> {
@@ -21,7 +37,7 @@ impl<T> Lock<T> for RwLock<T> {
     }
 }
 
-impl<T> Shard<RwLock<T>> {
+impl<T> Shard<StdRwLock<T>> {
     pub fn write<K: Hash>(&self, k: &K) -> RwLockWriteGuard<'_, T> {
         let i = index(k);
         self.shards

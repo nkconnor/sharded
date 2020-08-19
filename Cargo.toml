@@ -13,6 +13,12 @@ readme = "README.md"
 parking_lot = {version="0.11", optional=true}
 ahash = {version ="0.4.4", optional = true}
 hashbrown = {version = "0.8.2", optional = true}
+crossbeam = {version="0.7.1", optional = true}
 
 [features]
-3rd-party = ["parking_lot", "ahash", "hashbrown"]
+lock-crossbeam = ["crossbeam"]
+lock-parking-lot = ["parking_lot"]
+hash-ahash = ["ahash"]
+map-hashbrown = ["hashbrown"]
+
+# 3rd-party = ["parking_lot", "ahash", "hashbrown"]
