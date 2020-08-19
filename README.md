@@ -1,9 +1,10 @@
 _**Note:** This crate is still in early development and undergoing API changes. Contributions, feature requests, and 
 constructive feedback are warmly welcomed._ 
 
-# sharded &emsp; ![Build]
+# sharded &emsp; ![Build] ![Crate]
 
 [Build]: https://github.com/nkconnor/sharded/workflows/build/badge.svg
+[Crate]: https://img.shields.io/crates/v/sharded
 
 **Sharded provides safe, fast, and obvious concurrent collections in Rust**. This crate splits the 
 underlying collection into `N shards` each with its own lock. Calling `read(key)` or `write(key)`
@@ -41,7 +42,7 @@ of the most popular concurrent hashmaps out there.~~ **??**
 
 # Optionally use `parking_lot`, `hashbrown`, and `ahash`
 # by specifing the feature "3rd-party"
-sharded = { version = "0.1.0", features = ["3rd-party"] }
+sharded = { version = "0.0.1", features = ["3rd-party"] }
 ```
 ### Examples
 
