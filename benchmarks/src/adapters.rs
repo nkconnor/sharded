@@ -1,3 +1,8 @@
+// Credits to `xacrimon` for sending me this link which served as the original basis for this
+// module: https://github.com/xacrimon/conc-map-bench/commit/fbed218dce28fa9f5976a3d50617d43024d05bfd.
+//
+// No license present at the time of access.
+
 use bustle::*;
 use chashmap::CHashMap;
 use contrie::ConMap;
@@ -265,6 +270,7 @@ where
     }
 }
 
+// // NB breaking API changes. Save for later reference
 //#[derive(Clone)]
 //pub struct DashMapTable<K>(Arc<DashMap<K, u32, FxBuildHasher>>);
 //

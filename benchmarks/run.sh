@@ -1,3 +1,3 @@
 #!/bin/sh
 
-cargo run --release > latest.txt
+cargo run --release --bin main > latest.txt
