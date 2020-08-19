@@ -42,8 +42,9 @@ of the most popular concurrent hashmaps out there.
 
 sharded = { version = "0.1.0", features = ["3rd-party"] }
 ```
+### Examples
 
-**Create a concurrent HashMap**
+**Use a concurrent HashMap**
 
 ```rust
 use sharded::Map;
@@ -51,30 +52,27 @@ let concurrent = Map::new()
 
 // or use an existing HashMap,
 
-let concurrent = Shard::from(existing);
-
-```
-
-### Examples
-
-```rust
-// or Shard::<()>::new(HashMap::new()); not sure how to get rid of the turbofish..
-let users = shard!(HashMap::new()); 
+let users = Shard::from(users);
 
 let guard = users.write(32);
 guard.insert(32, user);
 ```
 
+
 ### Performance Comparison
+_**Disclaimer**: I'm no expert in performance testing._ Probably the best you can do is benchmark your application
+using the different implementations in the most realistic setting possible.
 
-If performance matters a lot, probably the best thing to do is to benchmark your application
-with different map implementations in the most realistic setting possible. **Also, a disclaimer**,
-performance testing is _not my specialty_. These measurements were generated using [`jonhoo/bustle`](https://github.com/jonhoo/bustle).
+These measurements were generated using [`jonhoo/bustle`](https://github.com/jonhoo/bustle). To reproduce the charts, 
+see the `benchmarks` directory. Work is underway to automate testing on a battery of cloud instance types and parameters. 
+Please raise a PR/issue if you have suggestions on how to improve these benchmarks or new 
+workloads to try!
 
-To reproduce the charts, see the `benchmarks` directory. Work is underway to automate testing on a battery
-of cloud instance types and parameters. If you have suggestions on how to improve these benchmarks or new 
-workloads to try - please raise a PR!
+#### Average Performance by Implementation
 
+This runs each implementation over the presets in `bustle::Mix` for 5 iterations/random seeds. Lower numbers are better.
+All implementations are pretty close but `sharded` wins by some margin until the high thread counts. At `threads=1`, `sharded`
+shows a significant advantage.
 
 ![Average Performance (read_heavy)](benchmarks/avg_performance_read_heavy.png)
 
