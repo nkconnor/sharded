@@ -29,9 +29,9 @@ of the most popular concurrent hashmaps out there.~~ **??**
 
 ### See Also
 
-- [`flurry`](https://github.com/jonhoo/flurry) - A port of Java's `java.util.concurrent.ConcurrentHashMap` to Rust. (Also part of a live stream series)
-- [`dashmap`](https://github.com/xacrimon/dashmap) - Blazing fast concurrent HashMap for Rust.
-- [`countrie`](https://crates.io/crates/contrie) - A concurrent hash-trie map & set.
+- **[flurry](https://github.com/jonhoo/flurry)** - A port of Java's `java.util.concurrent.ConcurrentHashMap` to Rust. (Also part of a live stream series)
+- **[dashmap](https://github.com/xacrimon/dashmap)** - Blazing fast concurrent HashMap for Rust.
+- **[countrie](https://crates.io/crates/contrie)** - A concurrent hash-trie map & set.
 
 
 ## Quick Start 
