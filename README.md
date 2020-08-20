@@ -84,9 +84,8 @@ All implementations are pretty close but `sharded` wins by some margin until the
 
 ![Read Heavy Performance)](benchmarks/avg_performance_read_heavy.png)
 
-#### Write Heavy
 
-![Write Heavy Performance](benchmarks/avg_performance_write_heavy.png)
+[.. continued in benchmarks/](benchmarks/README.md)
 
 
 ## Acknowledgements
