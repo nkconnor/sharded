@@ -1,5 +1,5 @@
 use crate::shard::ExtractShardKey;
-use std::collections::HashMap;
+use crate::HashMap;
 use std::hash::Hash;
 
 /// Basic methods needing implemented for shard construction
