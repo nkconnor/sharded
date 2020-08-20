@@ -73,3 +73,67 @@ impl<K: Hash> Shard<K> {
         Shard { shards }
     }
 }
+
+//impl<K: Hash, V, U, L, S> Ops<K> for S
+//where
+//    V: ExtractShardKey<K>,
+//    U: Collection<K, V>,
+//    L: Lock<U>,
+//    S: ShardOn<K, V = V, U = U, L = L>,
+//{
+//    type V = V;
+//    type U = U;
+//    type L = L;
+//    fn write<'a>(&'a self, k: &K) -> <<Self as Ops<K>>::L as Lock<Self::U>>::WriteGuard<'a> {
+//        let i = index(k);
+//        if let Some(lock) = self.shards().get(i) {
+//            lock.write()
+//        } else {
+//            panic!("asdfa");
+//        }
+//    }
+//}
+
+//mod ev {
+//    use crate::lock::Lock;
+//    use crate::*;
+//    use std::hash::Hash;
+//    use std::sync::mpsc::{channel, Receiver, Sender};
+//    use std::sync::Mutex;
+//    use std::thread::JoinHandle;
+//
+//    /// An eventually consistent sharded collection.
+//    pub struct EvShard<T, V> {
+//        pub(crate) shards: Vec<T>,
+//        sender: Mutex<Sender<V>>,
+//        receiver: JoinHandle<()>,
+//    }
+//
+//    impl<K: Hash, V> EvShard<K, V>
+//    where
+//        V: ExtractShardKey<K>,
+//    {
+//        pub fn from<U, L>(inner: U) -> EvShard<L, V>
+//        where
+//            U: Collection<K, V>,
+//            L: Lock<U>,
+//        {
+//            let shard = Shard::from::<V, U, L>(inner);
+//
+//            let (tx, rx) = channel::<V>();
+//
+//            let handle = std::thread::spawn(|| loop {
+//                if let Ok(v) = rx.recv() {
+//                    let shard: U = *shard.write(v.key());
+//                    shard.insert(v);
+//                }
+//            });
+//
+//            EvShard {
+//                shards: shard.shards,
+//                sender: Mutex::new(tx),
+//                receiver: handle,
+//            }
+//        }
+//    }
+//}

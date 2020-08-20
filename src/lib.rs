@@ -105,9 +105,12 @@ use std::collections::HashMap;
 #[cfg(not(feature = "map-hashbrown"))]
 use std::collections::HashSet;
 
+use std::hash::Hash;
+
 mod lock;
 pub use lock::Lock;
 pub use lock::RwLock;
+pub use lock::ShardLock;
 
 mod collection;
 pub use collection::Collection;
@@ -122,13 +125,23 @@ pub type Map<K, V> = Shard<RwLock<HashMap<K, V>>>;
 /// Sharded lock-based concurrent set using the crate default lock and set implementations.
 pub type Set<K> = Shard<RwLock<HashSet<K>>>;
 
+impl<K: Hash + Eq + Clone, V: Clone> Map<K, V> {
+    pub fn new() -> Self {
+        Shard::from(HashMap::new())
+    }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        Shard::from(HashMap::with_capacity(capacity))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn read_and_write() {
-        let x: Shard<RwLock<HashMap<String, String>>> = Shard::from(HashMap::new());
+        let x = Map::new();
 
         x.write(&"key".to_string())
             .insert("key".to_string(), "value".to_string());
@@ -141,8 +154,7 @@ mod tests {
 
     #[test]
     fn hold_read_and_write() {
-        let map = Shard::from(HashMap::new());
-
+        let map = Map::new();
         let mut write = map.write(&"abc".to_string());
         write.insert("abc".to_string(), "asdf".to_string());
 
