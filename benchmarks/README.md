@@ -10,5 +10,7 @@ a lot slower). If you know why `chashmap` is so slow in this test, please help h
 
 ![Update Heavy Performance](avg_performance_update_heavy.png)
 
+** Note `Flurry` is a partial run due to OOM. `src/adapters.rs` uses the `flurry:HashMapRef`
+which doesn't clearing garbage between runs.
 ![Uniform Performance](avg_performance_uniform.png)
 
