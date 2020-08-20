@@ -1,7 +1,10 @@
 _**Note:** This crate is still in early development and undergoing API changes. Contributions, feature requests, and 
 constructive feedback are warmly welcomed._ 
 
-# sharded &emsp; ![Build] ![Crate]
+# sharded &emsp; ![Build] ![Crate] [![Docs badge]][docs.rs]
+
+[Docs badge]: https://img.shields.io/badge/docs.rs-API-green
+[docs.rs]: https://docs.rs/sharded/
 
 [Build]: https://github.com/nkconnor/sharded/workflows/build/badge.svg
 [Crate]: https://img.shields.io/crates/v/sharded

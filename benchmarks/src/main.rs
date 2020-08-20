@@ -72,11 +72,9 @@ fn main() {
     tracing_subscriber::fmt().json().flatten_event(true).init();
 
     let workloads = vec![
-        //("read_heavy", Mix::read_heavy()),
-        //("write_heavy", Mix::insert_heavy()),
+        //        ("read_heavy", Mix::read_heavy()),
+        // ("write_heavy", Mix::insert_heavy()),
         //("update_heavy", Mix::update_heavy()),
-        ("write_heavy", Mix::insert_heavy()),
-        ("update_heavy", Mix::update_heavy()),
         ("uniform", Mix::uniform()),
     ];
 
