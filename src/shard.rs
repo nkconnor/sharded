@@ -1,9 +1,32 @@
 use crate::collection::Collection;
 use crate::lock::Lock;
 use crate::DefaultHasher;
+use crate::HashMap;
+use crate::ShardLock;
 use std::hash::Hash;
 use std::hash::Hasher;
 
+use std::ops::Deref;
+
+struct GetGuard<'a, K, V, U, L>
+where
+    L: Lock<U>,
+{
+    key: &'a K,
+    value: &'a V,
+    guard: L::ReadGuard<'a>,
+}
+
+impl<'a, K, V, U, L> Deref for GetGuard<'a, K, V, U, L>
+where
+    L: Lock<U>,
+{
+    type Target = V;
+
+    fn deref(&self) -> &V {
+        self.value
+    }
+}
 // Global shard count for collections
 // TODO configurable via construction
 const SHARD_COUNT: usize = 128;
@@ -46,8 +69,55 @@ pub struct Shard<T> {
     count: usize,
 }
 
+// Convenience methods for Collection = HashMap.
+// I think this may not work out later on though because
+// there will be a name clash and T is not constrained at the top
+impl<T> Shard<T> {
+    pub fn insert<K, V>(&self, k: K, v: V) -> Option<V>
+    where
+        K: Hash + Eq + Clone,
+        V: Clone,
+        T: Lock<HashMap<K, V>>,
+    {
+        self.write(&k).insert(k, v)
+    }
+
+    //argh its so close
+    //    pub fn get<'a, K, V, S: 'a>(
+    //        &'a self,
+    //        key: &'a K,
+    //    ) -> Option<GetGuard<'a, K, V, HashMap<K, V, S>, T>>
+    //    where
+    //        K: Hash + Eq + Clone,
+    //        V: Clone,
+    //        S: BuildHasher + Clone + Default,
+    //        T: Lock<HashMap<K, V, S>>,
+    //    {
+    //        let guard: T::ReadGuard<'a> = self.read(key);
+    //
+    //        if let Some(inner) = guard.get(&key) {
+    //            Some(GetGuard {
+    //                key: &key,
+    //                value: inner,
+    //                guard,
+    //            })
+    //        } else {
+    //            None
+    //        }
+    //    }
+}
+
 impl<T> Shard<T> {
     /// Create a new shard from an existing collection
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use sharded::Shard;
+    /// use std::collections::HashMap;
+    ///
+    /// let map = Shard::from(HashMap::with_capacity(100));
+    /// ```
     pub fn from<K, V, U>(inner: U) -> Self
     where
         K: Hash,
@@ -62,7 +132,7 @@ impl<T> Shard<T> {
             // for each item, push it to the appropriate shard
             let i = index(item.key(), count);
             if let Some(shard) = shards.get_mut(i) {
-                shard.insert(item)
+                shard.insert(item);
             } else {
                 panic!(
                     "We just initialized shards to `SHARD_COUNT` and hash % `SHARD_COUNT`

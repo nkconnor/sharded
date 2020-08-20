@@ -22,7 +22,7 @@ use std::sync::{RwLock as StdRwLock, RwLockReadGuard, RwLockWriteGuard};
 /// Generic locking implementation.
 pub trait Lock<T> {
     #[rustfmt::skip]
-    type ReadGuard<'a> where T: 'a + std::ops::Deref<Target=T>;
+    type ReadGuard<'a>: std::ops::Deref<Target=T> where T: 'a + std::ops::Deref<Target=T>;
     #[rustfmt::skip]
     type WriteGuard<'a>: std::ops::Deref<Target=T> + std::ops::DerefMut<Target=T> where T: 'a;
 
