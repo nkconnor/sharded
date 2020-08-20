@@ -1,5 +1,4 @@
-
-### Average Performance by Implementation (
+### Average Performance by Implementation
 
 This ran each implementation over the presets in [`bustle::Mix`](https://docs.rs/bustle/0.4.1/bustle/struct.Mix.html) for 5 
 iterations/random seeds. Lower numbers are better. Approaches using a single `std::sync` Lock were discarded for clarity (they are
