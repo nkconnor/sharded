@@ -43,7 +43,7 @@ of the most popular concurrent hashmaps out there.~~ **??**
 ```toml
 [dependencies]
 
-# Optionally use `parking_lot` (or `crossbeam`), `hashbrown`, and `ahash`
+# Optionally use `parking_lot` (or `crossbeam`), `hashbrown`, and `ahash` (or `fxhash`)
 # by specifing the feature of that name
 sharded = { version = "0.0.1", features = ["parking_lot", "hashbrown", "ahash"] }
 ```
