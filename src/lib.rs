@@ -1,17 +1,85 @@
-//! A generic sharded locking mechanism for hash based collections to speed up concurrent reads/writes. `Shard::new` splits
-//! the underlying collection into N shards each with its own lock. Calling `read(key)` or `write(key)`
-//! returns a guard for only a single shard. The underlying locks should be generic, so you can use
-//! it with any `Mutex` or `RwLock` in `std::sync` or `parking_lot`.
+//! _**Note:** This crate is still in early development and undergoing API changes. Contributions, feature requests, and
+//! constructive feedback are warmly welcomed._
 //!
-//! In a probably wrong and unscientific test of concurrent readers/single writer,
-//! `shard_lock` is **100-∞∞x faster** (deadlocks?) than [`dashmap`](https://github.com/xacrimon/dashmap), and
-//! **13x faster** than a single `parking_lot::RwLock`. Carrying `Shard<RwLock<T>>` is possibly more obvious
-//! and simpler than other approaches. The library has a very small footprint at ~100 loc and optionally no
-//! dependencies.
+//! # sharded &emsp; ![Build] ![Crate]
 //!
-//! `shard_lock` is flexible enough to shard any hash based collection such as `HashMap`, `HashSet`, `BTreeMap`, and `BTreeSet`.
+//! [Build]: https://github.com/nkconnor/sharded/workflows/build/badge.svg
+//! [Crate]: https://img.shields.io/crates/v/sharded
 //!
-//! _**Warning:** shard_lock is in early development and unsuitable for production. The API is undergoing changes and is not dependable._
+//! **Sharded provides safe, fast, and obvious concurrent collections in Rust**. This crate splits the
+//! underlying collection into `N shards` each with its own lock. Calling `read(key)` or `write(key)`
+//! returns a guard for a single shard.
+//!
+//! ## Features
+//!
+//! * **Zero unsafe code.** This library uses `#![forbid(unsafe_code)]`. There are some limitations with the
+//! raw locking API that _could cause you to write a bug_, but it should be hard to so!
+//!
+//! * **Zero dependencies.** By default, the library only uses `std`. If you'd like to pull in some community
+//! crates such as `parking_lot`, just use the **3rd-party** feature.
+//!
+//! * **Tiny footprint.** The core logic is ~100 lines of code. This may build up over time as utilities
+//! and ergonomics are added.
+//!
+//! * ~~**Extremely fast.** This implementation may be a more performant choice for your workload than some
+//! of the most popular concurrent hashmaps out there.~~ **??**
+//!
+//! * **Flexible API.**. Bring your own lock or collection types. `sharded::Map` is just a type alias for
+//! `Shard<Lock<Collection<_>>>`. There's support for Sets and Trees, too!
+//!
+//!
+//! ### See Also
+//!
+//! - **[flurry](https://github.com/jonhoo/flurry)** - A port of Java's `java.util.concurrent.ConcurrentHashMap` to Rust. (Also part of a live stream series)
+//! - **[dashmap](https://github.com/xacrimon/dashmap)** - Blazing fast concurrent HashMap for Rust.
+//! - **[countrie](https://crates.io/crates/contrie)** - A concurrent hash-trie map & set.
+//!
+//!
+//! ## Quick Start
+//!
+//! ```toml
+//! [dependencies]
+//!
+//! # Optionally use `parking_lot`, `hashbrown`, and `ahash`
+//! # by specifing the feature "3rd-party"
+//! sharded = { version = "0.0.1", features = ["3rd-party"] }
+//! ```
+//! ### Examples
+//!
+//! **Use a concurrent HashMap**
+//!
+//! ```rust
+//! use sharded::Map;
+//! let concurrent = Map::new()
+//!
+//! // or use an existing HashMap,
+//!
+//! let users = Shard::from(users);
+//!
+//! let guard = users.write(32);
+//! guard.insert(32, user);
+//! ```
+//!
+//! ## Acknowledgements
+//!
+//! Many thanks to
+//!
+//! - [Reddit community](https://www.reddit.com/r/rust) for a few pointers and
+//! some motivation to take this project further.
+//!
+//! - [Jon Gjengset](https://github.com/jonhoo) for the live streams and utility crates involved
+//!
+//! - and countless OSS contributors that made this work possible
+//!
+//! ## License
+//!
+//! Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
+//! 2.0</a> or <a href="LICENSE-MIT">MIT license</a> at your option.
+//!
+//! Unless you explicitly state otherwise, any contribution intentionally submitted
+//! for inclusion in `sharded` by you, as defined in the Apache-2.0 license, shall be
+//! dual licensed as above, without any additional terms or conditions.
+
 #![forbid(unsafe_code)]
 #![allow(dead_code)]
 #![allow(unused_macros)]
@@ -25,8 +93,6 @@ use ahash::AHasher as DefaultHasher;
 #[cfg(not(feature = "hash-ahash"))]
 use std::collections::hash_map::DefaultHasher;
 
-use std::hash::Hasher;
-
 #[cfg(feature = "map-hashbrown")]
 use hashbrown::HashMap;
 
@@ -39,147 +105,22 @@ use std::collections::HashMap;
 #[cfg(not(feature = "map-hashbrown"))]
 use std::collections::HashSet;
 
-//#[cfg(feature = "3rd-party")]
-//use parking_lot;
-
 mod lock;
-
+pub use lock::Lock;
 pub use lock::RwLock;
 
-//#[cfg(feature = "3rd-party")]
-//mod parking_lock;
+mod collection;
+pub use collection::Collection;
 
-//#[cfg(not(feature = "3rd-party"))]
-//mod std_lock;
+mod shard;
+pub use shard::ExtractShardKey;
+pub use shard::Shard;
 
 /// Sharded lock-based concurrent map using the crate default lock and map implementations.
 pub type Map<K, V> = Shard<RwLock<HashMap<K, V>>>;
 
 /// Sharded lock-based concurrent set using the crate default lock and set implementations.
 pub type Set<K> = Shard<RwLock<HashSet<K>>>;
-
-use std::hash::Hash;
-
-// Global shard count for collections
-// TODO configurable via construction
-const SHARD_COUNT: usize = 128;
-
-/// Generic locking implementation.
-pub trait Lock<T> {
-    #[rustfmt::skip]
-    type ReadGuard<'a> where T: 'a;
-    #[rustfmt::skip]
-    type WriteGuard<'a> where T: 'a;
-
-    fn new(t: T) -> Self;
-
-    fn write(&self) -> Self::WriteGuard<'_>;
-
-    fn read(&self) -> Self::ReadGuard<'_>;
-}
-
-/// Teases out the sharding key for example
-/// from an IntoIterator value.
-pub trait ExtractShardKey<K: Hash> {
-    fn key(&self) -> &K;
-}
-
-/// Basic methods needing implemented for shard construction
-pub trait Collection<K, Value>: IntoIterator<Item = Value> + Clone
-where
-    K: Hash,
-    Value: ExtractShardKey<K>,
-{
-    fn with_capacity(capacity: usize) -> Self;
-
-    fn insert(&mut self, v: Value);
-
-    fn len(&self) -> usize;
-
-    fn capacity(&self) -> usize;
-}
-
-// Takes key from map iter values
-impl<K: Hash, V> ExtractShardKey<K> for (K, V) {
-    fn key(&self) -> &K {
-        &self.0
-    }
-}
-
-impl<K, V> Collection<K, (K, V)> for HashMap<K, V>
-where
-    K: Hash + Clone + Eq,
-    V: Clone,
-{
-    fn with_capacity(capacity: usize) -> Self {
-        Self::with_capacity(capacity)
-    }
-
-    fn insert(&mut self, v: (K, V)) {
-        HashMap::insert(self, v.0, v.1);
-    }
-
-    fn len(&self) -> usize {
-        self.len()
-    }
-
-    fn capacity(&self) -> usize {
-        self.capacity()
-    }
-}
-
-/// The sharded lock collection. This is the main data type in the crate. See also the type aliases
-/// `Map`, `Set`, and so on.
-///
-/// # Examples
-///
-/// ```ignore
-/// use sharded::Shard;
-///
-/// let users = Shard::from(HashMap::new());
-///
-/// let guard = users.read("uid-31356");
-///
-/// guard.get("uid-31356");
-/// ```
-pub struct Shard<T> {
-    shards: Vec<T>,
-}
-
-impl<K: Hash> Shard<K> {
-    /// Create a new shard from an existing collection
-    pub fn from<V, U, L>(inner: U) -> Shard<L>
-    where
-        V: ExtractShardKey<K>,
-        U: Collection<K, V>,
-        L: Lock<U>,
-    {
-        let mut shards = vec![U::with_capacity(inner.len() / SHARD_COUNT); SHARD_COUNT];
-
-        inner.into_iter().for_each(|item| {
-            // for each item, push it to the appropriate shard
-            let i = index(item.key());
-            if let Some(shard) = shards.get_mut(i) {
-                shard.insert(item)
-            } else {
-                panic!(
-                    "We just initialized shards to `SHARD_COUNT` and hash % `SHARD_COUNT`
-                    should be bounded"
-                );
-            }
-        });
-
-        let shards = shards.into_iter().map(|shard| L::new(shard)).collect();
-
-        Shard { shards }
-    }
-}
-
-fn index<K: Hash>(k: &K) -> usize {
-    let mut s = DefaultHasher::default();
-    k.hash(&mut s);
-    (s.finish() as usize % SHARD_COUNT) as usize
-}
 
 #[cfg(test)]
 mod tests {
