@@ -1,4 +1,5 @@
 *.txt
+*.ipynb
 .ipynb_checkpoint*
 /target
 Cargo.lock
