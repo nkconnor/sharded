@@ -9,11 +9,11 @@ use contrie::ConMap;
 use dashmap::DashMap;
 use fxhash::FxBuildHasher;
 use hashbrown::HashMap;
-use sharded::{RwLock, Shard};
+use sharded::Map;
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
-pub struct ShardTable<K>(Arc<Shard<RwLock<HashMap<K, u32>>>>);
+pub struct ShardTable<K>(Arc<Map<K, u32>>);
 
 impl<K> Collection for ShardTable<K>
 where
@@ -21,8 +21,7 @@ where
 {
     type Handle = Self;
     fn with_capacity(capacity: usize) -> Self {
-        let m = Arc::new(Shard::from(HashMap::with_capacity(capacity)));
-        Self(m)
+        Self(Arc::new(Map::with_capacity(capacity)))
     }
 
     fn pin(&self) -> Self::Handle {

@@ -73,8 +73,8 @@ fn main() {
 
     let workloads = vec![
         //        ("read_heavy", Mix::read_heavy()),
-        ("write_heavy", Mix::insert_heavy()),
-        ("update_heavy", Mix::update_heavy()),
+        // ("write_heavy", Mix::insert_heavy()),
+        //("update_heavy", Mix::update_heavy()),
         ("uniform", Mix::uniform()),
     ];
 
@@ -87,12 +87,12 @@ fn main() {
         // random seed is used in each run
         // not sure what impact it has, but it probably doesn't hurt to
         // run this a handful of times..
-        for trial_num in 0..5 {
+        for trial_num in 0..15 {
             let span = info_span!("trial_num", trial_num = trial_num);
             let _guard = span.enter();
-            bench::<_, ContrieTable<u64>>(work);
-            bench::<_, DashMapTable<u64>>(work);
-            bench::<_, ShardTable<u64>>(work);
+            //bench::<_, ContrieTable<u64>>(work);
+            //bench::<_, DashMapTable<u64>>(work);
+            //bench::<_, ShardTable<u64>>(work);
             bench::<_, FlurryTable>(work);
         }
         // seems like these are slow outliers
