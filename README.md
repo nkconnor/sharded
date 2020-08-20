@@ -1,5 +1,5 @@
-_**Note:** This crate is still in early development and undergoing API changes. Contributions, feature requests, and 
-constructive feedback are warmly welcomed._ 
+_**Note:** This crate is still in early development and undergoing API changes. Contributions, bug reports,
+feature requests, and constructive feedback are warmly welcomed._ 
 
 # sharded &emsp; ![Build] ![Crate] [![Docs badge]][docs.rs]
 
@@ -27,7 +27,7 @@ and ergonomics are added.
 * ~~**Extremely fast.** This implementation may be a more performant choice for your workload than some
 of the most popular concurrent hashmaps out there.~~ **??**
 
-* **Flexible API.**. Bring your own lock or collection types. `sharded::Map` is just a type alias for
+* **Flexible API.** Bring your own lock or collection types. `sharded::Map` is just a type alias for
 `Shard<Lock<Collection<_>>>`. There will be support for Sets and Trees, too!
 
 
@@ -36,6 +36,13 @@ of the most popular concurrent hashmaps out there.~~ **??**
 - **[flurry](https://github.com/jonhoo/flurry)** - A port of Java's `java.util.concurrent.ConcurrentHashMap` to Rust. (Also part of a live stream series)
 - **[dashmap](https://github.com/xacrimon/dashmap)** - Blazing fast concurrent HashMap for Rust.
 - **[countrie](https://crates.io/crates/contrie)** - A concurrent hash-trie map & set.
+
+
+### MSRV
+
+This is currently running on 1.47-nightly due to `#![feature(generic_associated_types)]` that
+opens up abstractions. If there's interest, it should be easy enough to go to the stable
+channel.
 
 
 ## Quick Start 
