@@ -18,7 +18,7 @@ name = "ec2"
 path = "src/ec2.rs"
 
 [dependencies]
-sharded = { path = "../", features=["map-hashbrown", "hash-ahash", "lock-parking-lot"] }
+sharded = { path = "../", features=["hashbrown", "ahash", "parking_lot"] }
 parking_lot = "0.11"
 hashbrown = "0.8.2"
 ahash = "0.4.4"

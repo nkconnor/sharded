@@ -1,20 +1,20 @@
-#[cfg(feature = "lock-crossbeam")]
+#[cfg(feature = "crossbeam")]
 mod cross;
 
-#[cfg(feature = "lock-parking-lot")]
+#[cfg(feature = "parking_lot")]
 mod parking;
 
 use crate::shard::{index, Shard};
 use crate::*;
 use std::hash::Hash;
 
-#[cfg(feature = "lock-parking-lot")]
-pub type RwLock<T> = parking_lot::RwLock<T>;
+#[cfg(feature = "parking_lot")]
+pub type RwLock<T> = parking_lot_utils::RwLock<T>;
 
-#[cfg(feature = "lock-crossbeam")]
-pub type RwLock<T> = crossbeam::sync::ShardedLock<T>;
+#[cfg(feature = "crossbeam")]
+pub type RwLock<T> = crossbeam_utils::sync::ShardedLock<T>;
 
-#[cfg(not(any(feature = "lock-parking-lot", feature = "lock-crossbeam")))]
+#[cfg(not(any(feature = "parking_lot", feature = "crossbeam")))]
 pub type RwLock<T> = std::sync::RwLock<T>;
 
 use std::sync::{RwLock as StdRwLock, RwLockReadGuard, RwLockWriteGuard};
@@ -24,7 +24,7 @@ pub trait Lock<T> {
     #[rustfmt::skip]
     type ReadGuard<'a> where T: 'a;
     #[rustfmt::skip]
-    type WriteGuard<'a> where T: 'a;
+    type WriteGuard<'a> where T: 'a + std::ops::Deref<Target=T>;
 
     fn new(t: T) -> Self;
 
