@@ -28,7 +28,7 @@ and ergonomics are added.
 of the most popular concurrent hashmaps out there.~~ **??**
 
 * **Flexible API.**. Bring your own lock or collection types. `sharded::Map` is just a type alias for
-`Shard<Lock<Collection<_>>>`. There's support for Sets and Trees, too!
+`Shard<Lock<Collection<_>>>`. There will be support for Sets and Trees, too!
 
 
 ### See Also
