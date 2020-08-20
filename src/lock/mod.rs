@@ -24,7 +24,7 @@ pub trait Lock<T> {
     #[rustfmt::skip]
     type ReadGuard<'a> where T: 'a;
     #[rustfmt::skip]
-    type WriteGuard<'a> where T: 'a;
+    type WriteGuard<'a> where T: 'a + std::ops::Deref<Target=T>;
 
     fn new(t: T) -> Self;
 

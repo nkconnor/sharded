@@ -74,66 +74,61 @@ impl<K: Hash> Shard<K> {
     }
 }
 
-//impl<K: Hash, V, U, L, S> Ops<K> for S
-//where
-//    V: ExtractShardKey<K>,
-//    U: Collection<K, V>,
-//    L: Lock<U>,
-//    S: ShardOn<K, V = V, U = U, L = L>,
-//{
-//    type V = V;
-//    type U = U;
-//    type L = L;
-//    fn write<'a>(&'a self, k: &K) -> <<Self as Ops<K>>::L as Lock<Self::U>>::WriteGuard<'a> {
-//        let i = index(k);
-//        if let Some(lock) = self.shards().get(i) {
-//            lock.write()
-//        } else {
-//            panic!("asdfa");
-//        }
-//    }
-//}
-
+// WIP, possibly blocked on GAT bug
 //mod ev {
 //    use crate::lock::Lock;
 //    use crate::*;
 //    use std::hash::Hash;
-//    use std::sync::mpsc::{channel, Receiver, Sender};
-//    use std::sync::Mutex;
+//    use std::sync::mpsc::{channel, Sender};
+//    use std::sync::{Arc, Mutex};
 //    use std::thread::JoinHandle;
 //
 //    /// An eventually consistent sharded collection.
 //    pub struct EvShard<T, V> {
-//        pub(crate) shards: Vec<T>,
+//        pub(crate) shard: Arc<Shard<T>>,
 //        sender: Mutex<Sender<V>>,
 //        receiver: JoinHandle<()>,
 //    }
 //
-//    impl<K: Hash, V> EvShard<K, V>
+//    impl<K: Hash, V: 'static> EvShard<K, V>
 //    where
-//        V: ExtractShardKey<K>,
+//        V: ExtractShardKey<K> + Send,
 //    {
 //        pub fn from<U, L>(inner: U) -> EvShard<L, V>
 //        where
 //            U: Collection<K, V>,
-//            L: Lock<U>,
+//            L: Lock<U, WriteGuard = U> + Sync + Send + 'static,
 //        {
-//            let shard = Shard::from::<V, U, L>(inner);
+//            let shard = Arc::new(Shard::from::<V, U, L>(inner));
+//            let writer = Arc::clone(&shard);
 //
 //            let (tx, rx) = channel::<V>();
 //
-//            let handle = std::thread::spawn(|| loop {
+//            let handle = std::thread::spawn(move || loop {
 //                if let Ok(v) = rx.recv() {
-//                    let shard: U = *shard.write(v.key());
+//                    let mut shard = writer.write(v.key());
 //                    shard.insert(v);
 //                }
 //            });
 //
 //            EvShard {
-//                shards: shard.shards,
+//                shard,
 //                sender: Mutex::new(tx),
 //                receiver: handle,
 //            }
 //        }
+//    }
+//
+//    #[cfg(test)]
+//    mod tests {
+//        use super::*;
+//        use crate::*;
+//
+//        //https://github.com/rust-lang/rust/issues/68648
+//        //fn break_static_f() {
+//        //    let ev: EvShard<RwLock<HashMap<String, u32>>, _> = EvShard::from(HashMap::new());
+//        //    let mut guard = ev.shard.write(&"asdfa".to_string());
+//        //    guard.insert("asdfa".to_string(), 32);
+//        //}
 //    }
 //}
