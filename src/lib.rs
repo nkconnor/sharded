@@ -87,22 +87,22 @@
 #![feature(generic_associated_types)]
 #![feature(in_band_lifetimes)]
 
-#[cfg(feature = "hash-ahash")]
-use ahash::AHasher as DefaultHasher;
+#[cfg(feature = "ahash")]
+use ahash_utils::AHasher as DefaultHasher;
 
-#[cfg(not(feature = "hash-ahash"))]
+#[cfg(not(feature = "ahash"))]
 use std::collections::hash_map::DefaultHasher;
 
-#[cfg(feature = "map-hashbrown")]
-use hashbrown::HashMap;
+#[cfg(feature = "hashbrown")]
+use hashbrown_utils::HashMap;
 
-#[cfg(feature = "map-hashbrown")]
-use hashbrown::HashSet;
+#[cfg(feature = "hashbrown")]
+use hashbrown_utils::HashSet;
 
-#[cfg(not(feature = "map-hashbrown"))]
+#[cfg(not(feature = "hashbrown"))]
 use std::collections::HashMap;
 
-#[cfg(not(feature = "map-hashbrown"))]
+#[cfg(not(feature = "hashbrown"))]
 use std::collections::HashSet;
 
 use std::hash::Hash;

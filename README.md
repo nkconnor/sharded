@@ -19,7 +19,7 @@ returns a guard for a single shard.
 raw locking API that _could cause you to write a bug_, but it should be hard to so!
 
 * **Zero dependencies.** By default, the library only uses `std`. If you'd like to pull in some community
-crates such as `parking_lot`, just use the **3rd-party** feature.
+crates such as `parking_lot`, just use the corresponding feature.
 
 * **Tiny footprint.** The core logic is ~100 lines of code. This may build up over time as utilities
 and ergonomics are added.
@@ -43,9 +43,9 @@ of the most popular concurrent hashmaps out there.~~ **??**
 ```toml
 [dependencies]
 
-# Optionally use `parking_lot`, `hashbrown`, and `ahash`
-# by specifing the feature "3rd-party"
-sharded = { version = "0.0.1", features = ["3rd-party"] }
+# Optionally use `parking_lot` (or `crossbeam`), `hashbrown`, and `ahash`
+# by specifing the feature of that name
+sharded = { version = "0.0.1", features = ["parking_lot", "hashbrown", "ahash"] }
 ```
 ### Examples
 

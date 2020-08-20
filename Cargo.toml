@@ -10,15 +10,15 @@ documentation = "https://docs.rs/sharded"
 readme = "README.md"
 
 [dependencies]
-parking_lot = {version="0.11", optional=true}
-ahash = {version ="0.4.4", optional = true}
-hashbrown = {version = "0.8.2", optional = true}
-crossbeam = {version="0.7.1", optional = true}
+parking_lot_utils = {package="parking_lot", version="0.11", optional=true}
+ahash_utils = {package="ahash", version ="0.4.4", optional = true}
+hashbrown_utils = {package="hashbrown", version = "0.8.2", optional = true}
+crossbeam-utils = {version="0.7.2", optional = true}
 
 [features]
-lock-crossbeam = ["crossbeam"]
-lock-parking-lot = ["parking_lot"]
-hash-ahash = ["ahash"]
-map-hashbrown = ["hashbrown"]
+crossbeam = ["crossbeam-utils"]
+ahash = ["ahash_utils"]
+parking_lot = ["parking_lot_utils"]
+hashbrown = ["hashbrown_utils"]
 
 # 3rd-party = ["parking_lot", "ahash", "hashbrown"]

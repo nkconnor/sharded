@@ -1,6 +1,6 @@
 use crate::shard::index;
 use crate::{Lock, Shard};
-use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use parking_lot_utils::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::hash::Hash;
 
 impl<T> Lock<T> for RwLock<T> {
@@ -10,7 +10,7 @@ impl<T> Lock<T> for RwLock<T> {
     type WriteGuard<'b> where T: 'b = RwLockWriteGuard<'b, T>;
 
     fn new(t: T) -> Self {
-        parking_lot::RwLock::new(t)
+        RwLock::new(t)
     }
 
     fn read(&self) -> Self::ReadGuard<'_> {
