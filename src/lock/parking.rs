@@ -1,4 +1,5 @@
-use crate::{index, Lock, Shard};
+use crate::shard::index;
+use crate::{Lock, Shard};
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::hash::Hash;
 
