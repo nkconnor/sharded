@@ -4,7 +4,7 @@ mod cross;
 #[cfg(feature = "lock-parking-lot")]
 mod parking;
 
-use crate::{index, Lock, Shard};
+use crate::shard::{index, Shard};
 use std::hash::Hash;
 
 #[cfg(feature = "lock-parking-lot")]
@@ -17,6 +17,20 @@ pub type RwLock<T> = crossbeam::sync::ShardedLock<T>;
 pub type RwLock<T> = std::sync::RwLock<T>;
 
 use std::sync::{RwLock as StdRwLock, RwLockReadGuard, RwLockWriteGuard};
+
+/// Generic locking implementation.
+pub trait Lock<T> {
+    #[rustfmt::skip]
+    type ReadGuard<'a> where T: 'a;
+    #[rustfmt::skip]
+    type WriteGuard<'a> where T: 'a;
+
+    fn new(t: T) -> Self;
+
+    fn write(&self) -> Self::WriteGuard<'_>;
+
+    fn read(&self) -> Self::ReadGuard<'_>;
+}
 
 impl<T> Lock<T> for StdRwLock<T> {
     #[rustfmt::skip]
