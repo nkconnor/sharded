@@ -1,6 +1,6 @@
 use crate::shard::ExtractShardKey;
 use crate::HashMap;
-use std::hash::Hash;
+use std::hash::{BuildHasher, Hash};
 
 /// Basic methods needing implemented for shard construction
 pub trait Collection<K, Value>: IntoIterator<Item = Value> + Clone
@@ -25,7 +25,7 @@ where
 
 mod api {
     use crate::{HashMap, RwLock, Shard, ShardLock};
-    use std::hash::Hash;
+    use std::hash::{BuildHasher, Hash};
     //use std::ops::Deref;
     //use std::sync::RwLockReadGuard;
 
@@ -39,9 +39,10 @@ mod api {
     //     }
     // }
 
-    impl<K, V> Shard<RwLock<HashMap<K, V>>>
+    impl<K, V, S> Shard<RwLock<HashMap<K, V, S>>>
     where
         K: Hash + Eq + Clone,
+        S: BuildHasher + Clone + Default,
         V: Clone,
     {
         fn insert(&self, k: K, v: V) -> Option<V> {
@@ -60,17 +61,18 @@ mod api {
     }
 }
 
-impl<K, V> Collection<K, (K, V)> for HashMap<K, V>
+impl<K, V, S> Collection<K, (K, V)> for HashMap<K, V, S>
 where
     K: Hash + Clone + Eq,
     V: Clone,
+    S: BuildHasher + Clone + Default,
 {
     fn with_capacity(capacity: usize) -> Self {
-        Self::with_capacity(capacity)
+        HashMap::<K, V, S>::with_capacity_and_hasher(capacity, S::default())
     }
 
     fn insert(&mut self, v: (K, V)) {
-        HashMap::insert(self, v.0, v.1);
+        HashMap::<K, V, S>::insert(self, v.0, v.1);
     }
 
     fn len(&self) -> usize {

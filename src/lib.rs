@@ -48,7 +48,7 @@
 //!
 //! **Use a concurrent HashMap**
 //!
-//! ```rust
+//! ```ignore
 //! use sharded::Map;
 //! let concurrent = Map::new()
 //!
@@ -87,11 +87,23 @@
 #![feature(generic_associated_types)]
 #![feature(in_band_lifetimes)]
 
+#[cfg(feature = "fxhash")]
+use fxhash_utils::FxHasher as DefaultHasher;
+
+#[cfg(feature = "fxhash")]
+use fxhash_utils::FxBuildHasher as DefaultRandomState;
+
 #[cfg(feature = "ahash")]
 use ahash_utils::AHasher as DefaultHasher;
 
-#[cfg(not(feature = "ahash"))]
+#[cfg(feature = "ahash")]
+use ahash_utils::RandomState as DefaultRandomState;
+
+#[cfg(not(any(feature = "ahash", feature = "fxhash")))]
 use std::collections::hash_map::DefaultHasher;
+
+#[cfg(not(any(feature = "ahash", feature = "fxhash")))]
+use std::collections::hash_map::RandomState as DefaultRandomState;
 
 #[cfg(feature = "hashbrown")]
 use hashbrown_utils::HashMap;
@@ -114,24 +126,31 @@ pub use lock::ShardLock;
 
 mod collection;
 pub use collection::Collection;
+pub type RandomState = DefaultRandomState;
 
 mod shard;
+//pub use shard::ev::Ev;
 pub use shard::ExtractShardKey;
 pub use shard::Shard;
 
 /// Sharded lock-based concurrent map using the crate default lock and map implementations.
-pub type Map<K, V> = Shard<RwLock<HashMap<K, V>>>;
+pub type Map<K, V, S = RandomState> = Shard<RwLock<HashMap<K, V, S>>>;
 
 /// Sharded lock-based concurrent set using the crate default lock and set implementations.
 pub type Set<K> = Shard<RwLock<HashSet<K>>>;
 
 impl<K: Hash + Eq + Clone, V: Clone> Map<K, V> {
     pub fn new() -> Self {
-        Shard::from(HashMap::new())
+        Shard::from(HashMap::<K, V, RandomState>::with_hasher(
+            RandomState::default(),
+        ))
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        Shard::from(HashMap::with_capacity(capacity))
+        Shard::from(HashMap::<K, V, RandomState>::with_capacity_and_hasher(
+            capacity,
+            RandomState::default(),
+        ))
     }
 }
 

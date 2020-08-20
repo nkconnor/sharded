@@ -14,11 +14,13 @@ parking_lot_utils = {package="parking_lot", version="0.11", optional=true}
 ahash_utils = {package="ahash", version ="0.4.4", optional = true}
 hashbrown_utils = {package="hashbrown", version = "0.8.2", optional = true}
 crossbeam-utils = {version="0.7.2", optional = true}
+fxhash_utils = {package="fxhash", version="0.2.1", optional=true}
+
 
 [features]
 crossbeam = ["crossbeam-utils"]
 ahash = ["ahash_utils"]
+fxhash = ["fxhash_utils"]
 parking_lot = ["parking_lot_utils"]
 hashbrown = ["hashbrown_utils"]
 
-# 3rd-party = ["parking_lot", "ahash", "hashbrown"]

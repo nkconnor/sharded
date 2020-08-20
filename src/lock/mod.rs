@@ -4,7 +4,7 @@ mod cross;
 #[cfg(feature = "parking_lot")]
 mod parking;
 
-use crate::shard::{index, Shard};
+use crate::Shard;
 use crate::*;
 use std::hash::Hash;
 
@@ -22,9 +22,9 @@ use std::sync::{RwLock as StdRwLock, RwLockReadGuard, RwLockWriteGuard};
 /// Generic locking implementation.
 pub trait Lock<T> {
     #[rustfmt::skip]
-    type ReadGuard<'a> where T: 'a;
+    type ReadGuard<'a> where T: 'a + std::ops::Deref<Target=T>;
     #[rustfmt::skip]
-    type WriteGuard<'a> where T: 'a + std::ops::Deref<Target=T>;
+    type WriteGuard<'a>: std::ops::Deref<Target=T> + std::ops::DerefMut<Target=T> where T: 'a;
 
     fn new(t: T) -> Self;
 
@@ -50,12 +50,15 @@ where
     U: Collection<K, V>,
     L: Lock<U>,
 {
+    #[inline]
     fn shards<'a>(&'a self) -> &'a [L] {
         &self.shards
     }
 
+    #[inline]
     fn write(&self, k: &K) -> L::WriteGuard<'_> {
-        let i = index(k);
+        let i = Shard::<L>::index(&self, &k);
+
         if let Some(lock) = self.shards.get(i) {
             lock.write()
         } else {
@@ -63,8 +66,10 @@ where
         }
     }
 
+    #[inline]
     fn read(&self, k: &K) -> L::ReadGuard<'_> {
-        let i = index(k);
+        let i = Shard::<L>::index(&self, &k);
+
         if let Some(lock) = self.shards.get(i) {
             lock.read()
         } else {
@@ -75,34 +80,21 @@ where
 
 impl<T> Lock<T> for StdRwLock<T> {
     #[rustfmt::skip]
-    type ReadGuard<'b> where T: 'b = RwLockReadGuard<'b, T>;
+    type ReadGuard<'a> where T: 'a = RwLockReadGuard<'a, T>;
     #[rustfmt::skip]
-    type WriteGuard<'b> where T: 'b = RwLockWriteGuard<'b, T>;
+    type WriteGuard<'a> where T: 'a = RwLockWriteGuard<'a, T>;
 
     fn new(t: T) -> Self {
         StdRwLock::new(t)
     }
 
+    #[inline]
     fn read(&self) -> Self::ReadGuard<'_> {
         self.read().unwrap()
     }
 
+    #[inline]
     fn write(&self) -> Self::WriteGuard<'_> {
         self.write().unwrap()
     }
 }
-
-//impl<T> Shard<StdRwLock<T>> {
-//    pub fn write<K: Hash>(&self, k: &K) -> RwLockWriteGuard<'_, T> {
-//        let i = index(k);
-//        self.shards
-//            .get(i)
-//            .map(|lock| lock.write().unwrap())
-//            .unwrap()
-//    }
-//
-//    pub fn read<K: Hash>(&self, k: &K) -> RwLockReadGuard<'_, T> {
-//        let i = index(k);
-//        self.shards.get(i).map(|lock| lock.read().unwrap()).unwrap()
-//    }
-//}

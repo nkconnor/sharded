@@ -13,23 +13,25 @@ impl<T> Lock<T> for RwLock<T> {
         RwLock::new(t)
     }
 
+    #[inline]
     fn read(&self) -> Self::ReadGuard<'_> {
         self.read()
     }
 
+    #[inline]
     fn write(&self) -> Self::WriteGuard<'_> {
         self.write()
     }
 }
 
-impl<T> Shard<RwLock<T>> {
-    pub fn write<K: Hash>(&self, k: &K) -> RwLockWriteGuard<'_, T> {
-        let i = index(k);
-        self.shards.get(i).map(|lock| lock.write()).unwrap()
-    }
-
-    pub fn read<K: Hash>(&self, k: &K) -> RwLockReadGuard<'_, T> {
-        let i = index(k);
-        self.shards.get(i).map(|lock| lock.read()).unwrap()
-    }
-}
+//impl<T> Shard<RwLock<T>> {
+//    pub fn write<K: Hash>(&self, k: &K) -> RwLockWriteGuard<'_, T> {
+//        let i = Self::index(k);
+//        self.shards.get(i).map(|lock| lock.write()).unwrap()
+//    }
+//
+//    pub fn read<K: Hash>(&self, k: &K) -> RwLockReadGuard<'_, T> {
+//        let i = Self::index(k);
+//        self.shards.get(i).map(|lock| lock.read()).unwrap()
+//    }
+//}

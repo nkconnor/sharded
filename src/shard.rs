@@ -21,10 +21,10 @@ impl<K: Hash, V> ExtractShardKey<K> for (K, V) {
     }
 }
 
-pub(crate) fn index<K: Hash>(k: &K) -> usize {
+pub(crate) fn index<K: Hash>(k: &K, shard_count: usize) -> usize {
     let mut s = DefaultHasher::default();
     k.hash(&mut s);
-    (s.finish() as usize % SHARD_COUNT) as usize
+    (s.finish() as usize % shard_count) as usize
 }
 
 /// The sharded lock collection. This is the main data type in the crate. See also the type aliases
@@ -43,21 +43,24 @@ pub(crate) fn index<K: Hash>(k: &K) -> usize {
 /// ```
 pub struct Shard<T> {
     pub(crate) shards: Vec<T>,
+    count: usize,
 }
 
-impl<K: Hash> Shard<K> {
+impl<T> Shard<T> {
     /// Create a new shard from an existing collection
-    pub fn from<V, U, L>(inner: U) -> Shard<L>
+    pub fn from<K, V, U>(inner: U) -> Self
     where
+        K: Hash,
         V: ExtractShardKey<K>,
         U: Collection<K, V>,
-        L: Lock<U>,
+        T: Lock<U>,
     {
-        let mut shards = vec![U::with_capacity(inner.len() / SHARD_COUNT); SHARD_COUNT];
+        let count = SHARD_COUNT;
+        let mut shards = vec![U::with_capacity(inner.len() / count); count];
 
         inner.into_iter().for_each(|item| {
             // for each item, push it to the appropriate shard
-            let i = index(item.key());
+            let i = index(item.key(), count);
             if let Some(shard) = shards.get_mut(i) {
                 shard.insert(item)
             } else {
@@ -68,67 +71,117 @@ impl<K: Hash> Shard<K> {
             }
         });
 
-        let shards = shards.into_iter().map(|shard| L::new(shard)).collect();
+        let shards = shards.into_iter().map(|shard| T::new(shard)).collect();
 
-        Shard { shards }
+        Shard { shards, count }
+    }
+
+    pub(crate) fn index<K, V, U>(&self, key: &K) -> usize
+    where
+        V: ExtractShardKey<K>,
+        K: Hash,
+        U: Collection<K, V>,
+        T: Lock<U>,
+    {
+        index(&key, self.count)
     }
 }
 
 // WIP, possibly blocked on GAT bug
-//mod ev {
+//pub mod ev {
 //    use crate::lock::Lock;
-//    use crate::*;
+//    use crate::{Collection, ExtractShardKey, HashMap, RwLock, Shard, ShardLock};
 //    use std::hash::Hash;
 //    use std::sync::mpsc::{channel, Sender};
 //    use std::sync::{Arc, Mutex};
 //    use std::thread::JoinHandle;
 //
 //    /// An eventually consistent sharded collection.
-//    pub struct EvShard<T, V> {
-//        pub(crate) shard: Arc<Shard<T>>,
+//    pub struct Ev<K, V, U, L>
+//    where
+//        K: Hash,
+//        V: ExtractShardKey<K>,
+//        U: Collection<K, V>,
+//        L: Lock<U>,
+//    {
+//        pub shard: Arc<Shard<L>>,
 //        sender: Mutex<Sender<V>>,
 //        receiver: JoinHandle<()>,
+//        phantom: std::marker::PhantomData<(U, K)>,
 //    }
 //
-//    impl<K: Hash, V: 'static> EvShard<K, V>
+//    impl<K, V, U, L> Ev<K, V, U, L>
 //    where
-//        V: ExtractShardKey<K> + Send,
+//        K: Hash,
+//        V: ExtractShardKey<K> + Send + 'static,
+//        U: Collection<K, V>,
+//        L: Lock<U> + Sync + Send + Sized + 'static,
 //    {
-//        pub fn from<U, L>(inner: U) -> EvShard<L, V>
-//        where
-//            U: Collection<K, V>,
-//            L: Lock<U, WriteGuard = U> + Sync + Send + 'static,
-//        {
-//            let shard = Arc::new(Shard::from::<V, U, L>(inner));
+//        pub fn from(inner: U) -> Self {
+//            let shard: Shard<L> = Shard::from::<K, V, U>(inner);
+//            let shard = Arc::new(shard);
 //            let writer = Arc::clone(&shard);
 //
 //            let (tx, rx) = channel::<V>();
 //
-//            let handle = std::thread::spawn(move || loop {
-//                if let Ok(v) = rx.recv() {
-//                    let mut shard = writer.write(v.key());
-//                    shard.insert(v);
+//            let handle = std::thread::spawn(move || {
+//                //
+//                loop {
+//                    if let Ok(v) = rx.recv() {
+//                        let mut part = writer.write(v.key());
+//                        part.insert(v);
+//                    }
 //                }
 //            });
 //
-//            EvShard {
+//            Self {
 //                shard,
 //                sender: Mutex::new(tx),
 //                receiver: handle,
+//                phantom: std::marker::PhantomData::default(),
 //            }
+//        }
+//
+//        pub fn insert(&self, v: V) {
+//            let lock = self.sender.lock().unwrap();
+//            lock.send(v).unwrap();
 //        }
 //    }
 //
-//    #[cfg(test)]
-//    mod tests {
-//        use super::*;
-//        use crate::*;
-//
-//        //https://github.com/rust-lang/rust/issues/68648
-//        //fn break_static_f() {
-//        //    let ev: EvShard<RwLock<HashMap<String, u32>>, _> = EvShard::from(HashMap::new());
-//        //    let mut guard = ev.shard.write(&"asdfa".to_string());
-//        //    guard.insert("asdfa".to_string(), 32);
-//        //}
+//    fn break_static_f(key: String) {
+//        let ev: Ev<
+//            String,
+//            (String, String),
+//            HashMap<String, String>,
+//            RwLock<HashMap<String, String>>,
+//        > = Ev::from(HashMap::new());
+//        let mut guard = ev.shard.write(&key);
+//        guard.insert("asdfa".to_string(), "asdfa".to_string());
 //    }
+//}
+//#[cfg(test)]
+//mod tests {
+//    use super::ev::*;
+//    use crate::*;
+//
+//    #[test]
+//    fn break_static_f() {
+//        let key = "asdfas".to_string();
+//
+//        let ev: Ev<
+//            String,
+//            (String, String),
+//            HashMap<String, String>,
+//            RwLock<HashMap<String, String>>,
+//        > = Ev::from(HashMap::new());
+//        let mut guard = ev.shard.write(&key);
+//        guard.insert("asdfa".to_string(), "asdfa".to_string());
+//    }
+//
+//    //https://github.com/rust-lang/rust/issues/68648
+//    //fn break_static_f() {
+//    //    let ev: EvShard<RwLock<HashMap<String, String>>, _> = EvShard::from(HashMap::new());
+//    //    let mut guard = ev.shard.write(&"asdfa".to_string());
+//    //    guard.insert("asdfa".to_string(), "asdfa".to_string());
+//    //}
 //}
