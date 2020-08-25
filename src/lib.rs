@@ -129,7 +129,7 @@ pub use collection::Collection;
 pub type RandomState = DefaultRandomState;
 
 mod shard;
-//pub use shard::ev::Ev;
+
 pub use shard::ExtractShardKey;
 pub use shard::Shard;
 

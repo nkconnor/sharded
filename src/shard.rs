@@ -55,14 +55,19 @@ pub(crate) fn index<K: Hash>(k: &K, shard_count: usize) -> usize {
 ///
 /// # Examples
 ///
-/// ```ignore
-/// use sharded::Shard;
+/// Shard a `std::collections::HashMap` using `std::sync::RwLock`
 ///
-/// let users = Shard::from(HashMap::new());
+/// ```
+/// use std::collections::HashMap;
+/// use std::sync::RwLock;
+/// use sharded::{ShardLock, Shard};
+/// # #[derive(Clone)]
+/// # struct User {}
 ///
-/// let guard = users.read("uid-31356");
+/// let users = Shard::<RwLock<_>>::from(HashMap::<&str, User>::new());
 ///
-/// guard.get("uid-31356");
+/// let guard = users.read(&"uid-31356");
+/// let user: Option<&User> = guard.get(&"uid-31356");
 /// ```
 pub struct Shard<T> {
     pub(crate) shards: Vec<T>,
@@ -109,15 +114,6 @@ impl<T> Shard<T> {
 
 impl<T> Shard<T> {
     /// Create a new shard from an existing collection
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use sharded::Shard;
-    /// use std::collections::HashMap;
-    ///
-    /// let map = Shard::from(HashMap::with_capacity(100));
-    /// ```
     pub fn from<K, V, U>(inner: U) -> Self
     where
         K: Hash,
