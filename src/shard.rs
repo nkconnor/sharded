@@ -44,6 +44,13 @@ impl<K: Hash, V> ExtractShardKey<K> for (K, V) {
     }
 }
 
+// Identity fn
+impl<K: Hash> ExtractShardKey<K> for K {
+    fn key(&self) -> &K {
+        &self
+    }
+}
+
 pub(crate) fn index<K: Hash>(k: &K, shard_count: usize) -> usize {
     let mut s = DefaultHasher::default();
     k.hash(&mut s);

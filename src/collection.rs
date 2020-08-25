@@ -1,5 +1,5 @@
 use crate::shard::ExtractShardKey;
-use crate::HashMap;
+use crate::{HashMap, HashSet};
 use std::hash::{BuildHasher, Hash};
 
 /// Basic methods needing implemented for shard construction
@@ -43,6 +43,36 @@ where
     }
 
     fn get(&self, _k: &K) -> Option<(K, V)> {
+        todo!()
+    }
+
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn capacity(&self) -> usize {
+        self.capacity()
+    }
+}
+
+impl<K, S> Collection<K, K> for HashSet<K, S>
+where
+    K: Hash + Clone + Eq,
+    S: BuildHasher + Clone + Default,
+{
+    fn with_capacity(capacity: usize) -> Self {
+        HashSet::<K, S>::with_capacity_and_hasher(capacity, S::default())
+    }
+
+    fn insert(&mut self, v: K) -> Option<K> {
+        if HashSet::<K, S>::insert(self, v.clone()) {
+            Some(v.clone())
+        } else {
+            None
+        }
+    }
+
+    fn get(&self, _k: &K) -> Option<K> {
         todo!()
     }
 
