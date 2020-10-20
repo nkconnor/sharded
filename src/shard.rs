@@ -11,6 +11,7 @@ use std::ops::Deref;
 struct GetGuard<'a, K, V, U, L>
 where
     L: Lock<U>,
+    U: 'a,
 {
     key: &'a K,
     value: &'a V,

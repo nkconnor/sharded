@@ -7,6 +7,8 @@ mod parking;
 use crate::Shard;
 use crate::*;
 use std::hash::Hash;
+use std::ops::Deref;
+use std::ops::DerefMut;
 
 #[cfg(feature = "parking_lot")]
 pub type RwLock<T> = parking_lot_utils::RwLock<T>;
@@ -22,9 +24,9 @@ use std::sync::{RwLock as StdRwLock, RwLockReadGuard, RwLockWriteGuard};
 /// Generic locking implementation.
 pub trait Lock<T> {
     #[rustfmt::skip]
-    type ReadGuard<'a>: std::ops::Deref<Target=T> where T: 'a + std::ops::Deref<Target=T>;
+    type ReadGuard<'a>: Deref<Target=T> where T: 'a;
     #[rustfmt::skip]
-    type WriteGuard<'a>: std::ops::Deref<Target=T> + std::ops::DerefMut<Target=T> where T: 'a;
+    type WriteGuard<'a>: Deref<Target=T> + DerefMut<Target=T> where T: 'a;
 
     fn new(t: T) -> Self;
 

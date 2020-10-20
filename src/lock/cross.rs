@@ -1,6 +1,5 @@
-use crate::{index, Lock, Shard};
-use crossbeam::sync::{ShardedLock, ShardedLockReadGuard, ShardedLockWriteGuard};
-use std::hash::Hash;
+use crate::Lock;
+use crossbeam_utils::sync::{ShardedLock, ShardedLockReadGuard, ShardedLockWriteGuard};
 
 impl<T> Lock<T> for ShardedLock<T> {
     #[rustfmt::skip]
@@ -9,7 +8,7 @@ impl<T> Lock<T> for ShardedLock<T> {
     type WriteGuard<'b> where T: 'b = ShardedLockWriteGuard<'b, T>;
 
     fn new(t: T) -> Self {
-        crossbeam::sync::ShardedLock::new(t)
+        ShardedLock::new(t)
     }
 
     fn read(&self) -> Self::ReadGuard<'_> {
@@ -18,20 +17,5 @@ impl<T> Lock<T> for ShardedLock<T> {
 
     fn write(&self) -> Self::WriteGuard<'_> {
         self.write().unwrap()
-    }
-}
-
-impl<T> Shard<ShardedLock<T>> {
-    pub fn write<K: Hash>(&self, k: &K) -> ShardedLockWriteGuard<'_, T> {
-        let i = index(k);
-        self.shards
-            .get(i)
-            .map(|lock| lock.write().unwrap())
-            .unwrap()
-    }
-
-    pub fn read<K: Hash>(&self, k: &K) -> ShardedLockReadGuard<'_, T> {
-        let i = index(k);
-        self.shards.get(i).map(|lock| lock.read().unwrap()).unwrap()
     }
 }
