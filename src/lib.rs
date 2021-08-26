@@ -7,26 +7,22 @@
 //! [Crate]: https://img.shields.io/crates/v/sharded
 //!
 //! **Sharded provides safe, fast, and obvious concurrent collections in Rust**. This crate splits the
-//! underlying collection into `N shards` each with its own lock. Calling `read(key)` or `write(key)`
+//! underlying collection into `N shards` each with its own lock. Calling `read(&key)` or `write(&key)`
 //! returns a guard for a single shard.
 //!
 //! ## Features
 //!
-//! * **Zero unsafe code.** This library uses `#![forbid(unsafe_code)]`. There are some limitations with the
-//! raw locking API that _could cause you to write a bug_, but it should be hard to so!
+//! * **Zero unsafe code.** This library uses `#![forbid(unsafe_code)]`. However, it is based on locks
+//! and the user must be aware of the potential for deadlocks.
 //!
 //! * **Zero dependencies.** By default, the library only uses `std`. If you'd like to pull in some community
-//! crates such as `parking_lot`, just use the **3rd-party** feature.
+//! crates such as `parking_lot`, `hashbrown`, `ahash`, etc.. just use add the corresponding feature.
 //!
 //! * **Tiny footprint.** The core logic is ~100 lines of code. This may build up over time as utilities
 //! and ergonomics are added.
 //!
 //! * ~~**Extremely fast.** This implementation may be a more performant choice for your workload than some
 //! of the most popular concurrent hashmaps out there.~~ **??**
-//!
-//! * **Flexible API.**. Bring your own lock or collection types. `sharded::Map` is just a type alias for
-//! `Shard<Lock<Collection<_>>>`. There's support for Sets and Trees, too!
-//!
 //!
 //! ### See Also
 //!
@@ -41,23 +37,22 @@
 //! [dependencies]
 //!
 //! # Optionally use `parking_lot`, `hashbrown`, and `ahash`
-//! # by specifing the feature "3rd-party"
-//! sharded = { version = "0.0.1", features = ["3rd-party"] }
+//! # by specifing the feature by the same name e.g.
+//! sharded = { version = "0.0.1", features = ["fxhash", "parking_lot"] }
 //! ```
 //! ### Examples
 //!
 //! **Use a concurrent HashMap**
 //!
-//! ```ignore
+//! ```
 //! use sharded::Map;
-//! let concurrent = Map::new()
-//!
+//! let concurrent = Map::new();
+//! ```
+//! ```
 //! // or use an existing HashMap,
-//!
+//! # let users = std::collections::HashMap::new();
 //! let users = Shard::from(users);
-//!
-//! let guard = users.write(32);
-//! guard.insert(32, user);
+//! users.insert(32, "Henry");
 //! ```
 //!
 //! ## Acknowledgements
@@ -79,13 +74,7 @@
 //! Unless you explicitly state otherwise, any contribution intentionally submitted
 //! for inclusion in `sharded` by you, as defined in the Apache-2.0 license, shall be
 //! dual licensed as above, without any additional terms or conditions.
-
 #![forbid(unsafe_code)]
-#![allow(dead_code)]
-#![allow(unused_macros)]
-#![allow(incomplete_features)]
-#![feature(generic_associated_types)]
-#![feature(in_band_lifetimes)]
 
 #[cfg(feature = "fxhash")]
 use fxhash_utils::FxHasher as DefaultHasher;
@@ -99,59 +88,67 @@ use ahash_utils::AHasher as DefaultHasher;
 #[cfg(feature = "ahash")]
 use ahash_utils::RandomState as DefaultRandomState;
 
-#[cfg(not(any(feature = "ahash", feature = "fxhash")))]
+#[cfg(feature = "xxhash")]
+use xxhash_utils::XxHash64 as DefaultHasher;
+
+#[cfg(feature = "xxhash")]
+use xxhash_utils::RandomXxHashBuilder64 as DefaultRandomState;
+
+#[cfg(not(any(feature = "ahash", feature = "fxhash", feature = "xxhash")))]
 use std::collections::hash_map::DefaultHasher;
 
-#[cfg(not(any(feature = "ahash", feature = "fxhash")))]
+#[cfg(not(any(feature = "ahash", feature = "fxhash", feature = "xxhash")))]
 use std::collections::hash_map::RandomState as DefaultRandomState;
 
 #[cfg(feature = "hashbrown")]
 use hashbrown_utils::HashMap;
 
-#[cfg(feature = "hashbrown")]
-use hashbrown_utils::HashSet;
-
 #[cfg(not(feature = "hashbrown"))]
 use std::collections::HashMap;
 
-#[cfg(not(feature = "hashbrown"))]
-use std::collections::HashSet;
+#[cfg(feature = "parking_lot")]
+pub type Lock<T> = parking_lot_utils::RwLock<T>;
+
+#[cfg(feature = "parking_lot")]
+pub type ReadGuard<'a, T> = parking_lot_utils::RwLockReadGuard<'a, T>;
+
+#[cfg(feature = "parking_lot")]
+pub type WriteGuard<'a, T> = parking_lot_utils::RwLockWriteGuard<'a, T>;
+
+#[cfg(not(feature = "parking_lot"))]
+pub type Lock<T> = std::sync::RwLock<T>;
+
+#[cfg(not(feature = "parking_lot"))]
+type ReadGuard<'a, T> = std::sync::RwLockReadGuard<'a, T>;
+
+#[cfg(not(feature = "parking_lot"))]
+type WriteGuard<'a, T> = std::sync::RwLockWriteGuard<'a, T>;
 
 use std::hash::Hash;
+use std::hash::Hasher;
 
-mod lock;
-pub use lock::Lock;
-pub use lock::RwLock;
-pub use lock::ShardLock;
-
-mod collection;
-pub use collection::Collection;
 pub type RandomState = DefaultRandomState;
 
-mod shard;
+/// Number of shards
+const DEFAULT_SHARD_COUNT: usize = 128;
 
-pub use shard::ExtractShardKey;
-pub use shard::Shard;
+/// Get the shared index for the given key
+#[inline]
+pub(crate) fn index<K: Hash>(k: &K) -> usize {
+    let mut s = DefaultHasher::default();
+    k.hash(&mut s);
+    (s.finish() as usize % DEFAULT_SHARD_COUNT) as usize
+}
 
-/// Sharded lock-based concurrent map using the crate default lock and map implementations.
-pub type Map<K, V, S = RandomState> = Shard<RwLock<HashMap<K, V, S>>>;
+pub mod evmap;
+pub use evmap::EvMap;
+pub mod map;
+pub use map::Map;
 
-/// Sharded lock-based concurrent set using the crate default lock and set implementations.
-pub type Set<K> = Shard<RwLock<HashSet<K>>>;
-
-impl<K: Hash + Eq + Clone, V: Clone> Map<K, V> {
-    pub fn new() -> Self {
-        Shard::from(HashMap::<K, V, RandomState>::with_hasher(
-            RandomState::default(),
-        ))
-    }
-
-    pub fn with_capacity(capacity: usize) -> Self {
-        Shard::from(HashMap::<K, V, RandomState>::with_capacity_and_hasher(
-            capacity,
-            RandomState::default(),
-        ))
-    }
+/// The sharded lock collection. This is the main type in the crate. It is more common
+/// that you would interface with `Map` and `Set` in the crate root.
+pub struct Shard<T> {
+    pub(crate) shards: [T; DEFAULT_SHARD_COUNT],
 }
 
 #[cfg(test)]
