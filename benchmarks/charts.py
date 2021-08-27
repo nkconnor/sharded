@@ -92,7 +92,7 @@ for task, task_df in df.groupby('task'):
             x="avg", 
             y="threads", 
             ax=ax, 
-            label=label.strip("main::adapters::").strip("<u64>"), 
+            label=label,
             #title=f"Average Performance ({task})", 
             style='x', # '.--'
             ms=10
@@ -101,7 +101,7 @@ for task, task_df in df.groupby('task'):
     yticks = list(filter(lambda x: x % 2 == 0, list(df["threads"].unique())))
     
   
-    subtitle_string = f"random seeds={5}; params=default"
+    subtitle_string = f"random seeds={1}; params=default"
     
     fig.suptitle(title_string, y=0.97, fontsize=26)
     title_set = True
