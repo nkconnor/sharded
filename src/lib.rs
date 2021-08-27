@@ -131,10 +131,36 @@ use ahash_utils::RandomState as DefaultRandomState;
 #[cfg(feature = "xxhash")]
 use xxhash_utils::RandomXxHashBuilder64 as DefaultRandomState;
 
+#[cfg(feature = "seahash")]
+mod seahash {
+    use std::hash::BuildHasher;
+
+    use seahash_utils::SeaHasher;
+
+    #[derive(Default, Clone)]
+    pub struct DefaultState;
+
+    impl BuildHasher for DefaultState {
+        type Hasher = SeaHasher;
+
+        fn build_hasher(&self) -> Self::Hasher {
+            SeaHasher::new()
+        }
+    }
+}
+
+#[cfg(feature = "seahash")]
+use seahash::DefaultState as DefaultRandomState;
+
 //#[cfg(not(any(feature = "ahash", feature = "fxhash", feature = "xxhash")))]
 //use std::collections::hash_map::DefaultHasher;
 
-#[cfg(not(any(feature = "ahash", feature = "fxhash", feature = "xxhash")))]
+#[cfg(not(any(
+    feature = "ahash",
+    feature = "fxhash",
+    feature = "xxhash",
+    feature = "seahash"
+)))]
 use std::collections::hash_map::RandomState as DefaultRandomState;
 
 #[cfg(feature = "parking_lot")]

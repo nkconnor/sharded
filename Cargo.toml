@@ -13,6 +13,7 @@ readme = "README.md"
 hashbrown = {version="0.11", features=["raw"]}
 parking_lot_utils = {package="parking_lot", version="0.11", optional=true}
 ahash_utils = {package="ahash", version ="0.7", optional = true}
+seahash_utils = {package="seahash", version ="4", optional = true}
 fxhash_utils = {package="fxhash", version="0.2", optional=true}
 xxhash_utils = {package="twox-hash", version="1", optional=true}
 
@@ -20,4 +21,5 @@ xxhash_utils = {package="twox-hash", version="1", optional=true}
 ahash = ["ahash_utils"]
 fxhash = ["fxhash_utils"]
 parking_lot = ["parking_lot_utils"]
+seahash = ["seahash_utils"]
 xxhash = ["xxhash_utils"]
