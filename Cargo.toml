@@ -10,7 +10,7 @@ documentation = "https://docs.rs/sharded"
 readme = "README.md"
 
 [dependencies]
-hashbrown = {version="0.11", features=["raw"]}
+hashbrown = {version="0.11", features=["inline-more", "raw"], default-features=false}
 parking_lot_utils = {package="parking_lot", version="0.11", optional=true}
 ahash_utils = {package="ahash", version ="0.7", optional = true}
 seahash_utils = {package="seahash", version ="4", optional = true}
