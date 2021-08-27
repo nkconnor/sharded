@@ -1,25 +1,21 @@
-_**Note:** This crate is still in early development and undergoing API changes. Contributions, bug reports,
-feature requests, and constructive feedback are warmly welcomed._ 
+_**Note:** This crate is still in early development and undergoing API changes. Contributions, feature requests, and
+constructive feedback are warmly welcomed._
 
-# sharded &emsp; ![Build] ![Crate] [![Docs badge]][docs.rs]
-
-[Docs badge]: https://img.shields.io/badge/docs.rs-API-green
-[docs.rs]: https://docs.rs/sharded/
+## sharded &emsp; ![Build] ![Crate]
 
 [Build]: https://github.com/nkconnor/sharded/workflows/build/badge.svg
 [Crate]: https://img.shields.io/crates/v/sharded
 
-**Sharded provides safe, fast, and obvious concurrent collections in Rust**. This crate splits the 
-underlying collection into `N shards` each with its own lock. Calling `read(key)` or `write(key)`
+**Sharded provides safe, fast, and obvious concurrent collections in Rust**. This crate splits the
+underlying collection into `N shards` each with its own lock. Calling `read(&key)` or `write(&key)`
 returns a guard for a single shard.
 
-## Features
+### Features
 
-* **Zero unsafe code.** This library uses `#![forbid(unsafe_code)]`. There are some limitations with the 
-raw locking API that _could cause you to write a bug_, but it should be hard to so!
+* **Zero unsafe code.** This library uses `#![forbid(unsafe_code)]`.
 
-* **Zero dependencies.** By default, the library only uses `std`. If you'd like to pull in some community
-crates such as `parking_lot`, just use the corresponding feature.
+* **Zero dependencies (almost).** By default, the library only uses `std` and `hashbrown`. If you'd like to pull in some community
+crates such as `parking_lot`, `ahash`, etc.. just use add the corresponding feature.
 
 * **Tiny footprint.** The core logic is ~100 lines of code. This may build up over time as utilities
 and ergonomics are added.
@@ -27,78 +23,77 @@ and ergonomics are added.
 * ~~**Extremely fast.** This implementation may be a more performant choice for your workload than some
 of the most popular concurrent hashmaps out there.~~ **??**
 
-* **Flexible API.** Bring your own lock or collection types. `sharded::Map` is just a type alias for
-`Shard<Lock<Collection<_>>>`. There will be support for Sets and Trees, too!
-
-
-### See Also
+#### See Also
 
 - **[flurry](https://github.com/jonhoo/flurry)** - A port of Java's `java.util.concurrent.ConcurrentHashMap` to Rust. (Also part of a live stream series)
 - **[dashmap](https://github.com/xacrimon/dashmap)** - Blazing fast concurrent HashMap for Rust.
 - **[countrie](https://crates.io/crates/contrie)** - A concurrent hash-trie map & set.
 
 
-### MSRV
-
-This is currently running on 1.47-nightly due to `#![feature(generic_associated_types)]` that
-opens up abstractions. If there's interest, it should be easy enough to go to the stable
-channel.
-
-
-## Quick Start 
+### Quick Start
 
 ```toml
 [dependencies]
 
-# Optionally use `parking_lot` (or `crossbeam`), `hashbrown`, and `ahash` (or `fxhash`)
-# by specifing the feature of that name
-sharded = { version = "0.0.1", features = ["parking_lot", "hashbrown", "ahash"] }
+# Optionally use `parking_lot`, `ahash`, `fxhash`, and `xxhash`
+# by specifing the feature by the same name e.g.
+sharded = { version = "0.1.0", features = ["fxhash", "parking_lot"] }
 ```
-### Examples
+#### Examples
 
-**Use a concurrent HashMap**
+**Insert a key value pair**
 
 ```rust
-use sharded::Map;
-let concurrent = Map::new()
-
-// or use an existing HashMap,
-
-let users = Shard::from(users);
-
-let guard = users.write(32);
-guard.insert(32, user);
+let users = Map::new();
+users.insert(32, "Henry");
 ```
 
+**Access a storage shard**
 
-## Performance Comparison
+`Map` provides `read` and `write` which give access to the underlying
+storage (which is built using `hashbrown::raw`). Both methods return a tuple of `(Key,
+Guard<Shard>)`
+
+```rust
+let (key, shard) = users.read(&32);
+assert_eq!(shard.get(key), Some(&"Henry"));
+```
+
+**Determine if a storage shard is locked**
+
+`try_read` and `try_write` are available for avoiding blocks or in situations that could
+deadlock
+
+```rust
+match users.try_read(&32) {
+    Ok((key, mut shard)) => Ok(shard.get(key)),
+    Err(WouldBlock) => Err(WouldBlock)
+};
+```
+
+### Performance Comparison
+
+_**Note**: These benchmarks are stale._
+
 _**Disclaimer**: I'm no expert in performance testing._ Probably the best you can do is benchmark your application
-using the different implementations in the most realistic setting possible. 
+using the different implementations in the most realistic setting possible.
 
-These measurements were generated using [`jonhoo/bustle`](https://github.com/jonhoo/bustle). To reproduce the charts, 
-see the `benchmarks` directory. Work is underway to automate testing on a battery of cloud instance types and parameters. 
-Please raise a PR/issue if you have suggestions on how to improve these benchmarks or new 
-workloads to try!
+These measurements were generated using [`jonhoo/bustle`](https://github.com/jonhoo/bustle). To reproduce the charts,
+see the `benchmarks` directory.
 
-### Average Performance by Implementation
+#### Average Performance by Implementation
 
-This ran each implementation over the presets in [`bustle::Mix`](https://docs.rs/bustle/0.4.1/bustle/struct.Mix.html) for 5 
-iterations/random seeds. Lower numbers are better. Approaches using a single `std::sync` Lock and `chashmap` were discarded for clarity (they are
+This ran each implementation over the presets in [`bustle::Mix`](https://docs.rs/bustle/0.4.1/bustle/struct.Mix.html) for 5
+iterations. Lower numbers are better. Approaches using a single `std::sync` Lock and `chashmap` were discarded for clarity (they are
 a lot slower). If you know why `chashmap` is so slow in this test, please help here.
 
-#### Read Heavy
-
-All implementations are pretty close but `sharded` wins by some margin until the high thread counts. At `threads=1`, 
-`sharded` shows a significant advantage. `dashmap` shows the worst overall performance.
-
+##### Read Heavy
 
 ![Read Heavy Performance)](benchmarks/avg_performance_read_heavy.png)
 
-
 [.. continued in benchmarks/](benchmarks/README.md)
 
-
-## Acknowledgements
+### Acknowledgements
 
 Many thanks to
 
@@ -109,7 +104,7 @@ some motivation to take this project further.
 
 - and countless OSS contributors that made this work possible
 
-## License
+### License
 
 Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
 2.0</a> or <a href="LICENSE-MIT">MIT license</a> at your option.
@@ -117,3 +112,5 @@ Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in `sharded` by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
+
+License: MIT OR Apache-2.0

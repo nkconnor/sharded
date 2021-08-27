@@ -41,14 +41,64 @@
 //! ```
 //! ### Examples
 //!
-//! **Use a concurrent HashMap**
+//! **Insert a key value pair**
 //!
 //! ```
-//! use sharded::Map;
-//!
+//! # use sharded::Map;
 //! let users = Map::new();
-//! concurrent.insert(32, "Henry");
+//! users.insert(32, "Henry");
 //! ```
+//!
+//! **Access a storage shard**
+//!
+//! `Map` provides `read` and `write` which give access to the underlying
+//! storage (which is built using `hashbrown::raw`). Both methods return a tuple of `(Key,
+//! Guard<Shard>)`
+//!
+//! ```
+//! # use sharded::Map;
+//! # let users = Map::new();
+//! # users.insert(32, "Henry");
+//! let (key, shard) = users.read(&32);
+//! assert_eq!(shard.get(key), Some(&"Henry"));
+//! ```
+//!
+//! **Determine if a storage shard is locked**
+//!
+//! `try_read` and `try_write` are available for avoiding blocks or in situations that could
+//! deadlock
+//!
+//! ```
+//! # use sharded::{WouldBlock, Map};
+//! # let users = Map::new();
+//! # users.insert(32, "Henry");
+//! match users.try_read(&32) {
+//!     Ok((key, mut shard)) => Ok(shard.get(key)),
+//!     Err(WouldBlock) => Err(WouldBlock)
+//! };
+//! ```
+//!
+//! ## Performance Comparison
+//!
+//! _**Note**: These benchmarks are stale._
+//!
+//! _**Disclaimer**: I'm no expert in performance testing._ Probably the best you can do is benchmark your application
+//! using the different implementations in the most realistic setting possible.
+//!
+//! These measurements were generated using [`jonhoo/bustle`](https://github.com/jonhoo/bustle). To reproduce the charts,
+//! see the `benchmarks` directory.
+//!
+//! ### Average Performance by Implementation
+//!
+//! This ran each implementation over the presets in [`bustle::Mix`](https://docs.rs/bustle/0.4.1/bustle/struct.Mix.html) for 5
+//! iterations. Lower numbers are better. Approaches using a single `std::sync` Lock and `chashmap` were discarded for clarity (they are
+//! a lot slower). If you know why `chashmap` is so slow in this test, please help here.
+//!
+//! #### Read Heavy
+//!
+//! ![Read Heavy Performance)](benchmarks/avg_performance_read_heavy.png)
+//!
+//! [.. continued in benchmarks/](benchmarks/README.md)
 //!
 //! ## Acknowledgements
 //!
