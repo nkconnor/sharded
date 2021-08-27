@@ -12,11 +12,10 @@
 //!
 //! ## Features
 //!
-//! * **Zero unsafe code.** This library uses `#![forbid(unsafe_code)]`. However, it is based on locks
-//! and the user must be aware of the potential for deadlocks.
+//! * **Zero unsafe code.** This library uses `#![forbid(unsafe_code)]`.
 //!
-//! * **Zero dependencies.** By default, the library only uses `std`. If you'd like to pull in some community
-//! crates such as `parking_lot`, `hashbrown`, `ahash`, etc.. just use add the corresponding feature.
+//! * **Zero dependencies (almost).** By default, the library only uses `std` and `hashbrown`. If you'd like to pull in some community
+//! crates such as `parking_lot`, `ahash`, etc.. just use add the corresponding feature.
 //!
 //! * **Tiny footprint.** The core logic is ~100 lines of code. This may build up over time as utilities
 //! and ergonomics are added.
@@ -36,9 +35,9 @@
 //! ```toml
 //! [dependencies]
 //!
-//! # Optionally use `parking_lot`, `hashbrown`, and `ahash`
+//! # Optionally use `parking_lot`, `ahash`, `fxhash`, and `xxhash`
 //! # by specifing the feature by the same name e.g.
-//! sharded = { version = "0.0.1", features = ["fxhash", "parking_lot"] }
+//! sharded = { version = "0.1.0", features = ["fxhash", "parking_lot"] }
 //! ```
 //! ### Examples
 //!
@@ -46,13 +45,9 @@
 //!
 //! ```
 //! use sharded::Map;
-//! let concurrent = Map::new();
-//! ```
-//! ```
-//! // or use an existing HashMap,
-//! # let users = std::collections::HashMap::new();
-//! let users = Shard::from(users);
-//! users.insert(32, "Henry");
+//!
+//! let users = Map::new();
+//! concurrent.insert(32, "Henry");
 //! ```
 //!
 //! ## Acknowledgements
@@ -76,35 +71,29 @@
 //! dual licensed as above, without any additional terms or conditions.
 #![forbid(unsafe_code)]
 
-#[cfg(feature = "fxhash")]
-use fxhash_utils::FxHasher as DefaultHasher;
+//#[cfg(feature = "fxhash")]
+//use fxhash_utils::FxHasher as DefaultHasher;
 
 #[cfg(feature = "fxhash")]
 use fxhash_utils::FxBuildHasher as DefaultRandomState;
 
-#[cfg(feature = "ahash")]
-use ahash_utils::AHasher as DefaultHasher;
+//#[cfg(feature = "ahash")]
+//use ahash_utils::AHasher as DefaultHasher;
 
 #[cfg(feature = "ahash")]
 use ahash_utils::RandomState as DefaultRandomState;
 
-#[cfg(feature = "xxhash")]
-use xxhash_utils::XxHash64 as DefaultHasher;
+//#[cfg(feature = "xxhash")]
+//use xxhash_utils::XxHash64 as DefaultHasher;
 
 #[cfg(feature = "xxhash")]
 use xxhash_utils::RandomXxHashBuilder64 as DefaultRandomState;
 
-#[cfg(not(any(feature = "ahash", feature = "fxhash", feature = "xxhash")))]
-use std::collections::hash_map::DefaultHasher;
+//#[cfg(not(any(feature = "ahash", feature = "fxhash", feature = "xxhash")))]
+//use std::collections::hash_map::DefaultHasher;
 
 #[cfg(not(any(feature = "ahash", feature = "fxhash", feature = "xxhash")))]
 use std::collections::hash_map::RandomState as DefaultRandomState;
-
-#[cfg(feature = "hashbrown")]
-use hashbrown_utils::HashMap;
-
-#[cfg(not(feature = "hashbrown"))]
-use std::collections::HashMap;
 
 #[cfg(feature = "parking_lot")]
 pub type Lock<T> = parking_lot_utils::RwLock<T>;
@@ -124,58 +113,12 @@ type ReadGuard<'a, T> = std::sync::RwLockReadGuard<'a, T>;
 #[cfg(not(feature = "parking_lot"))]
 type WriteGuard<'a, T> = std::sync::RwLockWriteGuard<'a, T>;
 
-use std::hash::Hash;
-use std::hash::Hasher;
-
 pub type RandomState = DefaultRandomState;
 
+pub struct WouldBlock;
+
 /// Number of shards
-const DEFAULT_SHARD_COUNT: usize = 128;
+const DEFAULT_SHARD_COUNT: u64 = 128;
 
-/// Get the shared index for the given key
-#[inline]
-pub(crate) fn index<K: Hash>(k: &K) -> usize {
-    let mut s = DefaultHasher::default();
-    k.hash(&mut s);
-    (s.finish() as usize % DEFAULT_SHARD_COUNT) as usize
-}
-
-pub mod evmap;
-pub use evmap::EvMap;
 pub mod map;
 pub use map::Map;
-
-/// The sharded lock collection. This is the main type in the crate. It is more common
-/// that you would interface with `Map` and `Set` in the crate root.
-pub struct Shard<T> {
-    pub(crate) shards: [T; DEFAULT_SHARD_COUNT],
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn read_and_write() {
-        let x = Map::new();
-
-        x.write(&"key".to_string())
-            .insert("key".to_string(), "value".to_string());
-
-        assert_eq!(
-            x.read(&"key".to_string()).get(&"key".to_string()).unwrap(),
-            "value"
-        );
-    }
-
-    #[test]
-    fn hold_read_and_write() {
-        let map = Map::new();
-        let mut write = map.write(&"abc".to_string());
-        write.insert("abc".to_string(), "asdf".to_string());
-
-        let _read = map.read(&"asdfas".to_string());
-        let _read_too = map.read(&"asdfas".to_string());
-        assert!(_read.is_empty());
-    }
-}
