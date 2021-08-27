@@ -1,6 +1,6 @@
 [package]
 name = "sharded"
-version = "0.0.6"
+version = "0.1.0"
 authors = ["nkconnor <nicholas.k.connor@gmail.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"

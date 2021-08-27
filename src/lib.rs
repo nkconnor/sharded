@@ -34,7 +34,6 @@
 //!
 //! ```toml
 //! [dependencies]
-//!
 //! # Optionally use `parking_lot`, `ahash`, `fxhash`, and `xxhash`
 //! # by specifing the feature by the same name e.g.
 //! sharded = { version = "0.1.0", features = ["fxhash", "parking_lot"] }
