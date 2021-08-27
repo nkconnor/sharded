@@ -1,4 +1,4 @@
-//! _**Note:** This crate is still in early development and undergoing API changes. Contributions, feature requests, and
+//! _**Note: This crate is still in early development and undergoing API changes.** Contributions, feature requests, and
 //! constructive feedback are warmly welcomed._
 //!
 //! # sharded &emsp; ![Build] ![Crate]
@@ -12,23 +12,21 @@
 //!
 //! ## Features
 //!
-//! * **Zero unsafe code.** This library uses `#![forbid(unsafe_code)]`.
-//!
-//! * **Zero dependencies (almost).** By default, the library only uses `std` and `hashbrown`. If you'd like to pull in some community
-//! crates such as `parking_lot`, `ahash`, etc.. just use add the corresponding feature.
+//! * **Zero unsafe code.** This library uses `#![forbid(unsafe_code)]` and was motivated by
+//! the complexity and amount of memory errors present in many alternatives.
 //!
 //! * **Tiny footprint.** The core logic is ~100 lines of code. This may build up over time as utilities
-//! and ergonomics are added.
+//! and ergonomics are added. By default, the library only uses `std` and `hashbrown`. If you'd like to pull in some community
+//! crates such as `parking_lot`, `ahash`, etc.. just use add the corresponding feature.
 //!
-//! * ~~**Extremely fast.** This implementation may be a more performant choice for your workload than some
-//! of the most popular concurrent hashmaps out there.~~ **??**
+//! * **Really fast.** This implementation may be a more performant choice than some
+//! of the most popular concurrent hashmaps out there. Try it on your workload and let us know.
 //!
 //! ### See Also
 //!
-//! - **[flurry](https://github.com/jonhoo/flurry)** - A port of Java's `java.util.concurrent.ConcurrentHashMap` to Rust. (Also part of a live stream series)
-//! - **[dashmap](https://github.com/xacrimon/dashmap)** - Blazing fast concurrent HashMap for Rust.
 //! - **[countrie](https://crates.io/crates/contrie)** - A concurrent hash-trie map & set.
-//!
+//! - **[dashmap](https://github.com/xacrimon/dashmap)** - Blazing fast concurrent HashMap for Rust.
+//! - **[flurry](https://github.com/jonhoo/flurry)** - A port of Java's `java.util.concurrent.ConcurrentHashMap` to Rust. (Also part of a live stream series)
 //!
 //! ## Quick Start
 //!
@@ -79,25 +77,20 @@
 //!
 //! ## Performance Comparison
 //!
-//! _**Note**: These benchmarks are stale._
-//!
-//! _**Disclaimer**: I'm no expert in performance testing._ Probably the best you can do is benchmark your application
-//! using the different implementations in the most realistic setting possible.
-//!
 //! These measurements were generated using [`jonhoo/bustle`](https://github.com/jonhoo/bustle). To reproduce the charts,
-//! see the `benchmarks` directory.
+//! see the `benchmarks` directory. Benchmarks can be misleading. It is recommended to benchmark using a real application
+//! workload.
 //!
 //! ### Average Performance by Implementation
 //!
-//! This ran each implementation over the presets in [`bustle::Mix`](https://docs.rs/bustle/0.4.1/bustle/struct.Mix.html) for 5
-//! iterations. Lower numbers are better. Approaches using a single `std::sync` Lock and `chashmap` were discarded for clarity (they are
+//! This ran each implementation over the presets in [`bustle::Mix`](https://docs.rs/bustle/0.4.2/bustle/struct.Mix.html) for 5
+//! iterations / random seeds using a Intel® Core™ i9-9820X. Lower numbers are better. Approaches using a single `std::sync` Lock and `chashmap` were discarded for clarity (they are
 //! a lot slower). If you know why `chashmap` is so slow in this test, please help here.
 //!
-//! #### Read Heavy
-//!
 //! ![Read Heavy Performance)](benchmarks/avg_performance_read_heavy.png)
-//!
-//! [.. continued in benchmarks/](benchmarks/README.md)
+//! ![Write Heavy Performance)](benchmarks/avg_performance_write_heavy.png)
+//! ![Update Heavy Performance)](benchmarks/avg_performance_update_heavy.png)
+//! ![Uniform Performance)](benchmarks/avg_performance_uniform.png)
 //!
 //! ## Acknowledgements
 //!
