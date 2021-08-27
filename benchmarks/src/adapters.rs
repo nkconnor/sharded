@@ -17,7 +17,7 @@ pub struct ShardTable<K>(Arc<Map<K, u32>>);
 
 impl<K> Collection for ShardTable<K>
 where
-    K: Send + Sync + From<u64> + Copy + 'static + std::hash::Hash + Eq,
+    K: Send + Sync + From<u64> + Copy + 'static + std::hash::Hash + Eq + std::fmt::Debug,
 {
     type Handle = Self;
     fn with_capacity(capacity: usize) -> Self {
@@ -36,21 +36,21 @@ where
     type Key = K;
 
     fn get(&mut self, key: &Self::Key) -> bool {
-        let guard = self.0.read::<Self::Key>(key);
-        (*guard).get(key).is_some()
+        let (key, shard) = self.0.read(key);
+        shard.get(key).is_some()
     }
 
     fn insert(&mut self, key: &Self::Key) -> bool {
-        self.0.write(key).insert(*key, 0).is_none()
+        self.0.insert(*key, 0).is_none()
     }
 
     fn remove(&mut self, key: &Self::Key) -> bool {
-        self.0.write(key).remove(key).is_some()
+        self.0.remove(*key).is_some()
     }
 
     fn update(&mut self, key: &Self::Key) -> bool {
-        let mut map = self.0.write(key);
-        map.get_mut(key).map(|v| *v += 1).is_some()
+        let (key, mut shard) = self.0.write(*key);
+        shard.get_mut(key).map(|v| *v += 1).is_some()
     }
 }
 #[derive(Clone)]

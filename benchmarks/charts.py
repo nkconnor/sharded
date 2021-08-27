@@ -52,7 +52,7 @@ with open(results) as fh:
             "mix": line["span"]["mix"],
             "avg": int(line["avg"].strip('ns')),
             "ops": line["ops"],
-            "took": line["took"],
+            #"took": line["took"],
             "_debug": line["message"]  
         })
         
