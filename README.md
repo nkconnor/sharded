@@ -8,7 +8,7 @@ constructive feedback are warmly welcomed._
 
 **Sharded provides safe, fast, and obvious concurrent collections in Rust**. This crate splits the
 underlying collection into `N shards` each with its own lock. Calling `read(&key)` or `write(&key)`
-returns a guard for a single shard.
+returns a guard for a single shard. For further reading on the strategy, see a [write up on C++'s `parallel-hashmap`](https://greg7mdp.github.io/parallel-hashmap/).
 
 ### Features
 
