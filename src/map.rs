@@ -189,15 +189,15 @@ impl<K, V> Map<K, V> {
     }
 
     /// Create a new map with the provided capacity and hash_builder. This will distribute the capacity
-    /// evenly among all the shards (well.. see below)
+    /// evenly among all the shards
     pub fn with_capacity_and_hasher(capacity: usize, hash_builder: RandomState) -> Self
     where
         K: Debug,
         V: Debug,
     {
-        let capacity = capacity / DEFAULT_SHARD_COUNT as usize;
+        let capacity = (capacity as u64 + DEFAULT_SHARD_COUNT - 1) / DEFAULT_SHARD_COUNT;
 
-        let shards = std::iter::repeat(|| RawTable::with_capacity(capacity))
+        let shards = std::iter::repeat(|| RawTable::with_capacity(capacity as usize))
             .map(|f| f())
             .take(DEFAULT_SHARD_COUNT as usize)
             .map(|inner| {
