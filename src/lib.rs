@@ -66,12 +66,13 @@
 //! deadlock
 //!
 //! ```
-//! # use sharded::{WouldBlock, Map};
+//! # use sharded::Map;
 //! # let users = Map::new();
 //! # users.insert(32, "Henry");
+//! # struct WouldBlock;
 //! match users.try_read(&32) {
-//!     Ok((key, mut shard)) => Ok(shard.get(key)),
-//!     Err(WouldBlock) => Err(WouldBlock)
+//!     Some((key, mut shard)) => Ok(shard.get(key)),
+//!     None => Err(WouldBlock)
 //! };
 //! ```
 //!
@@ -182,8 +183,6 @@ type ReadGuard<'a, T> = std::sync::RwLockReadGuard<'a, T>;
 type WriteGuard<'a, T> = std::sync::RwLockWriteGuard<'a, T>;
 
 pub type RandomState = DefaultRandomState;
-
-pub struct WouldBlock;
 
 /// Number of shards
 const DEFAULT_SHARD_COUNT: u64 = 128;

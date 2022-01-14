@@ -246,14 +246,14 @@ impl<K, V> Map<K, V> {
     }
 
     /// Attempt to retrieve a read guard for the shard corresponding to the provided key. If
-    /// a writer currently holds the lock, this will return an `Err(WouldBlock)`
+    /// a writer currently holds the lock, this will return `None`
     ///
     /// **Panics** if the shard lock is poisoned
     #[inline]
     pub fn try_read<'a>(
         &'a self,
         key: &'a K,
-    ) -> Result<(ReadKey<'a, K>, ReadGuard<'a, Shard<K, V>>), WouldBlock>
+    ) -> Option<(ReadKey<'a, K>, ReadGuard<'a, Shard<K, V>>)>
     where
         K: Hash + Eq,
     {
@@ -267,7 +267,7 @@ impl<K, V> Map<K, V> {
                 {
                     match lock.try_read() {
                         Some(v) => v,
-                        None => return Err(WouldBlock),
+                        None => return None,
                     }
                 }
                 #[cfg(not(feature = "parking_lot"))]
@@ -277,14 +277,14 @@ impl<K, V> Map<K, V> {
                         Err(TryLockError::Poisoned(_)) => {
                             panic!("Tried to read on a poisoned lock")
                         }
-                        Err(TryLockError::WouldBlock) => return Err(WouldBlock),
+                        Err(TryLockError::WouldBlock) => return None,
                     }
                 }
             }
             None => panic!("index out of bounds"),
         };
 
-        Ok((ReadKey(hash, key), shard))
+        Some((ReadKey(hash, key), shard))
     }
 
     /// Does the map contain the provided key
