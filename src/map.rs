@@ -453,6 +453,42 @@ impl<K, V> Iterator for IntoValues<K, V> {
     }
 }
 
+//scratch work
+//use std::iter::Extend;
+//
+//impl<K, V> Extend<(K, V)> for Map<K, V>
+//where
+//    K: Hash + Eq + Send + Sync + 'static,
+//    V: Send + Sync + 'static,
+//{
+//    fn extend<T>(&mut self, iter: T)
+//    where
+//        T: IntoIterator<Item = (K, V)>,
+//    {
+//        let iter = iter.into_iter();
+//        // iter.size_hint()
+//
+//        let t_handles = Vec::with_capacity(DEFAULT_SHARD_COUNT as usize);
+//        let txs = Vec::with_capacity(DEFAULT_SHARD_COUNT as usize);
+//
+//        for i in 0..DEFAULT_SHARD_COUNT {
+//            let shard = self.shards[i as usize].write().unwrap();
+//            let shard = std::sync::Arc::new(shard);
+//            // ^ need crossbeam probably
+//            let (tx, rx) = std::sync::mpsc::channel();
+//            txs.push(tx);
+//
+//            std::thread::spawn(move || {
+//                for (key, value) in rx {
+//                    shard.insert(key, value);
+//                }
+//            });
+//        }
+//
+//        let (rx, tx) = std::sync::mpsc::channel();
+//    }
+//}
+
 #[cfg(test)]
 mod tests {
     use super::*;
