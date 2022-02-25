@@ -500,7 +500,7 @@ mod tests {
         guard.insert(key, "value");
 
         // since the guard is still held, this should block
-        assert!(map.try_read(&"").is_err())
+        assert!(map.try_read(&"").is_none())
     }
 
     #[test]
