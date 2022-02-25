@@ -63,8 +63,8 @@ deadlock
 
 ```rust
 match users.try_read(&32) {
-    Ok((key, mut shard)) => Ok(shard.get(key)),
-    Err(WouldBlock) => Err(WouldBlock)
+    Some((key, mut shard)) => Ok(shard.get(key)),
+    None => Err(WouldBlock)
 };
 ```
 
