@@ -3,8 +3,8 @@ constructive feedback are warmly welcomed._
 
 ## sharded &emsp; ![Build] ![Crate]
 
-[Build]: https://github.com/nkconnor/sharded/workflows/build/badge.svg
-[Crate]: https://img.shields.io/crates/v/sharded
+[build]: https://github.com/nkconnor/sharded/workflows/build/badge.svg
+[crate]: https://img.shields.io/crates/v/sharded
 
 **Sharded provides safe, fast, and obvious concurrent collections in Rust**. This crate splits the
 underlying collection into `N shards` each with its own lock. Calling `read(&key)` or `write(&key)`
@@ -12,15 +12,15 @@ returns a guard for a single shard. For further reading on the strategy, see a [
 
 ### Features
 
-* **Zero unsafe code.** This library uses `#![forbid(unsafe_code)]` and was motivated by
-the complexity and amount of memory errors present in many alternatives.
+- **Zero unsafe code.** This library uses `#![forbid(unsafe_code)]` and was motivated by
+  the complexity and amount of memory errors present in many alternatives.
 
-* **Tiny footprint.** The core logic is ~100 lines of code. This may build up over time as utilities
-and ergonomics are added. By default, the library only uses `std` and `hashbrown`. If you'd like to pull in some community
-crates such as `parking_lot`, `ahash`, etc.. just use add the corresponding feature.
+- **Tiny footprint.** The core logic is ~100 lines of code. This may build up over time as utilities
+  and ergonomics are added. By default, the library only uses `std` and `hashbrown`. If you'd like to pull in some community
+  crates such as `parking_lot`, `ahash`, etc.. just use add the corresponding feature.
 
-* **Really fast.** This implementation may be a more performant choice than some
-of the most popular concurrent hashmaps out there. Try it on your workload and let us know.
+- **Really fast.** This implementation may be a more performant choice than some
+  of the most popular concurrent hashmaps out there. Try it on your workload and let us know.
 
 #### See Also
 
@@ -32,10 +32,11 @@ of the most popular concurrent hashmaps out there. Try it on your workload and l
 
 ```toml
 [dependencies]
-# Optionally use `parking_lot`, `ahash`, `fxhash`, and `xxhash`
+# Optionally use `parking_lot`, `ahash`, `fxhash`, `seahash`, and `xxhash`
 # by specifing the feature by the same name e.g.
-sharded = { version = "0.1.0", features = ["fxhash", "parking_lot"] }
+sharded = { version = "0.2", features = ["fxhash", "parking_lot"] }
 ```
+
 #### Examples
 
 **Insert a key value pair**
@@ -48,8 +49,7 @@ users.insert(32, "Henry");
 **Access a storage shard**
 
 `Map` provides `read` and `write` which give access to the underlying
-storage (which is built using `hashbrown::raw`). Both methods return a tuple of `(Key,
-Guard<Shard>)`
+storage (which is built using `hashbrown::raw`). Both methods return a tuple of `(Key, Guard<Shard>)`
 
 ```rust
 let (key, shard) = users.read(&32);
@@ -90,7 +90,7 @@ a lot slower). If you know why `chashmap` is so slow in this test, please help h
 Many thanks to
 
 - [Reddit community](https://www.reddit.com/r/rust) for a few pointers and
-some motivation to take this project further.
+  some motivation to take this project further.
 
 - [Jon Gjengset](https://github.com/jonhoo) for the live streams and utility crates involved
 
