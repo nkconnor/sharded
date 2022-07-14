@@ -119,12 +119,19 @@ impl<K, V> Shard<K, V> {
         self.inner.len()
     }
 
+    /// Is `len == 0`
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.inner.len() == 0
+    }
+
     /// Remove the key, returning the value at that position if it existed
     #[inline]
     pub fn remove(&mut self, key: WriteKey<K>) -> Option<V>
     where
         K: Hash + Eq,
     {
+        #[allow(clippy::manual_map)] // reduce compiler IR, I think!
         match self
             .inner
             .remove_entry(key.hash(), equivalent_key(key.key()))
@@ -166,7 +173,7 @@ impl<K, V> Shard<K, V> {
 
     /// Get the value for the key if it exists
     #[inline]
-    pub fn get<'a, Q: Key<K>>(&'a self, key: Q) -> Option<&'a V>
+    pub fn get<Q: Key<K>>(&self, key: Q) -> Option<&V>
     where
         K: Hash + Eq,
     {
@@ -249,6 +256,7 @@ impl<K, V> Map<K, V> {
     /// a writer currently holds the lock, this will return `None`
     ///
     /// **Panics** if the shard lock is poisoned
+    #[allow(clippy::type_complexity)]
     #[inline]
     pub fn try_read<'a>(
         &'a self,
@@ -307,6 +315,12 @@ impl<K, V> Map<K, V> {
         return self.shards.iter().map(|x| x.read().unwrap().len()).sum();
     }
 
+    /// Is `len == 0`
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Returns a cloned value corresponding to the provided key
     #[inline]
     pub fn get_owned<'a>(&'a self, key: &'a K) -> Option<V>
@@ -322,7 +336,7 @@ impl<K, V> Map<K, V> {
     ///
     /// **Panics** if the shard lock is poisoned
     #[inline]
-    pub fn write<'a>(&'a self, key: K) -> (WriteKey<K>, WriteGuard<'a, Shard<K, V>>)
+    pub fn write(&self, key: K) -> (WriteKey<K>, WriteGuard<Shard<K, V>>)
     where
         K: Hash + Eq,
     {
@@ -378,8 +392,29 @@ impl<K, V> Map<K, V> {
 
     /// Creates a consuming iterator, that is, one that moves each key-value
     /// pair out of the map in arbitrary order. The map cannot be used after
+    /// calling this. Yields the values of the map.
+    pub fn into_values(self) -> IntoValues<K, V> {
+        IntoValues {
+            iter: self.into_iter(),
+        }
+    }
+}
+
+impl<K: Debug, V: Debug> Default for Map<K, V> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<K: 'static, V: 'static> IntoIterator for Map<K, V> {
+    type IntoIter = IntoIter<K, V>;
+
+    type Item = (K, V);
+
+    /// Creates a consuming iterator, that is, one that moves each key-value
+    /// pair out of the map in arbitrary order. The map cannot be used after
     /// calling this.
-    pub fn into_iter(self) -> IntoIter<K, V> {
+    fn into_iter(self) -> IntoIter<K, V> {
         let shards: Vec<_> = self.shards.into();
 
         #[cfg(feature = "parking_lot")]
@@ -394,15 +429,6 @@ impl<K, V> Map<K, V> {
         IntoIter {
             iter: shards.pop().unwrap().inner.into_iter(),
             shards,
-        }
-    }
-
-    /// Creates a consuming iterator, that is, one that moves each key-value
-    /// pair out of the map in arbitrary order. The map cannot be used after
-    /// calling this. Yields the values of the map.
-    pub fn into_values(self) -> IntoValues<K, V> {
-        IntoValues {
-            iter: self.into_iter(),
         }
     }
 }
