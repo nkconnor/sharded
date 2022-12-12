@@ -1,7 +1,7 @@
 [package]
 name = "sharded"
-version = "0.2.1"
-authors = ["nkconnor <nicholas.k.connor@gmail.com>"]
+version = "0.3.0"
+authors = ["nkconnor <email@nconnor.com>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Safe, fast, and obvious concurrent collections"
@@ -9,17 +9,9 @@ repository = "https://github.com/nkconnor/sharded"
 documentation = "https://docs.rs/sharded"
 readme = "README.md"
 
-[dependencies]
-hashbrown = {version="0.11", features=["inline-more", "raw"], default-features=false}
-parking_lot_utils = {package="parking_lot", version="0.11", optional=true}
-ahash_utils = {package="ahash", version ="0.7", optional = true}
-seahash_utils = {package="seahash", version ="4", optional = true}
-fxhash_utils = {package="fxhash", version="0.2", optional=true}
-xxhash_utils = {package="twox-hash", version="1", optional=true}
+[lib]
+doctest = false
 
-[features]
-ahash = ["ahash_utils"]
-fxhash = ["fxhash_utils"]
-parking_lot = ["parking_lot_utils"]
-seahash = ["seahash_utils"]
-xxhash = ["xxhash_utils"]
+[dependencies]
+hashbrown = {version="0.12", features=["inline-more", "raw"], default-features=false}
+parking_lot = "0.12"
