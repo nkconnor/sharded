@@ -120,7 +120,7 @@ const DEFAULT_SHARD_COUNT: usize = 128;
 #[inline]
 fn equivalent_key<K, V>(k: &K) -> impl Fn(&(K, V)) -> bool + '_
 where
-    K: ?Sized + Eq,
+    K: Eq,
 {
     move |x| k.eq(x.0.borrow())
 }
