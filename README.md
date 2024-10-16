@@ -24,7 +24,7 @@ For further reading on the strategy, see a [write up on C++'s `parallel-hashmap`
 
 #### See Also
 
-- **[countrie](https://crates.io/crates/contrie)** - A concurrent hash-trie map & set.
+- **[contrie](https://crates.io/crates/contrie)** - A concurrent hash-trie map & set.
 - **[dashmap](https://github.com/xacrimon/dashmap)** - Blazing fast concurrent HashMap for Rust.
 - **[flurry](https://github.com/jonhoo/flurry)** - A port of Java's `java.util.concurrent.ConcurrentHashMap` to Rust. (Also part of a live stream series)
 
@@ -32,9 +32,7 @@ For further reading on the strategy, see a [write up on C++'s `parallel-hashmap`
 
 ```toml
 [dependencies]
-# Optionally use `parking_lot`, `ahash`, `fxhash`, `seahash`, and `xxhash`
-# by specifing the feature by the same name e.g.
-sharded = { version = "0.2", features = ["fxhash", "parking_lot"] }
+sharded = "0.3"
 ```
 
 #### Examples
@@ -42,30 +40,8 @@ sharded = { version = "0.2", features = ["fxhash", "parking_lot"] }
 **Insert a key value pair**
 
 ```rust
-let users = Map::new();
+let users = ConcurrentHashMap::new();
 users.insert(32, "Henry");
-```
-
-**Access a storage shard**
-
-`Map` provides `read` and `write` which give access to the underlying
-storage (which is built using `hashbrown::raw`). Both methods return a tuple of `(Key, Guard<Shard>)`
-
-```rust
-let (key, shard) = users.read(&32);
-assert_eq!(shard.get(key), Some(&"Henry"));
-```
-
-**Determine if a storage shard is locked**
-
-`try_read` and `try_write` are available for avoiding blocks or in situations that could
-deadlock
-
-```rust
-match users.try_read(&32) {
-    Some((key, mut shard)) => Ok(shard.get(key)),
-    None => Err(WouldBlock)
-};
 ```
 
 ### Performance Comparison

@@ -9,15 +9,15 @@
 //! ## Features
 //!
 //! * **Zero unsafe code.** This library uses `#![deny(unsafe_code)]` and was motivated by
-//! the complexity and amount of memory errors present in many alternatives.
+//!     the complexity and amount of memory errors present in many alternatives.
 //!
 //! * **Intuitive API.** Uses similar or same methods as `std` when possible.
 //!
 //! * **Small footprint.** The core logic is <100 lines of code. The only dependencies are
-//! `hashbrown` (which `std` uses) and `parking_lot`.
+//!     `hashbrown` (which `std` uses) and `parking_lot`.
 //!
 //! * **Really fast.** This implementation may be a more performant choice than some
-//! of the most popular concurrent hashmaps out there. Try it on your workload and let us know.
+//!     of the most popular concurrent hashmaps out there. Try it on your workload and let us know.
 //!
 //! ### See Also
 //!
@@ -97,19 +97,14 @@
 //! dual licensed as above, without any additional terms or conditions.
 #![deny(unsafe_code)]
 
-//use hashbrown::hash_map::Iter;
-use hashbrown::raw::{RawIntoIter, RawIter, RawTable};
-use parking_lot::{
-    MappedRwLockReadGuard, MappedRwLockWriteGuard, RwLock, RwLockReadGuard, RwLockWriteGuard,
-};
+use hashbrown::raw::{RawIntoIter, RawTable};
+use parking_lot::{MappedRwLockReadGuard, RwLock, RwLockReadGuard};
 use std::borrow::Borrow;
 use std::convert::TryInto;
-use std::hash::{BuildHasher, Hash, Hasher};
-use std::ops::Deref;
+use std::hash::{BuildHasher, Hash};
 use std::{fmt, fmt::Debug};
 
 use std::collections::hash_map::RandomState;
-use std::collections::HashMap;
 
 /// Number of shards
 const DEFAULT_SHARD_COUNT: usize = 128;
@@ -132,9 +127,7 @@ where
     K: Hash,
     S: BuildHasher,
 {
-    let mut state = hash_builder.build_hasher();
-    val.hash(&mut state);
-    state.finish()
+    hash_builder.hash_one(val)
 }
 
 // From hashbrown
@@ -200,7 +193,7 @@ impl<K, V> ConcurrentHashMap<K, V, RandomState, DEFAULT_SHARD_COUNT> {
     ///
     /// ```
     /// use sharded::ConcurrentHashMap;
-    /// let mut map: HashMap<&str, i32> = ConcurrentHashMap::with_capacity(100_000);
+    /// let mut map: ConcurrentHashMap<&str, i32> = ConcurrentHashMap::with_capacity(100_000);
     /// ```
     #[inline]
     #[must_use]
@@ -273,7 +266,6 @@ impl<K, V, S: BuildHasher, const N: usize> ConcurrentHashMap<K, V, S, N> {
         capacity: usize,
         hash_builder: S,
     ) -> ConcurrentHashMap<K, V, S, N>
-    // TODO..
     where
         S: Clone,
     {
@@ -281,7 +273,7 @@ impl<K, V, S: BuildHasher, const N: usize> ConcurrentHashMap<K, V, S, N> {
         let capacity = (capacity + DEFAULT_SHARD_COUNT - 1) / DEFAULT_SHARD_COUNT;
 
         let shards: Vec<RwLock<Shard<K, V, S>>> =
-            std::iter::repeat(|| RawTable::with_capacity(capacity as usize))
+            std::iter::repeat(|| RawTable::with_capacity(capacity))
                 .map(|f| f())
                 .take(DEFAULT_SHARD_COUNT)
                 .map(|inner| {
@@ -298,6 +290,7 @@ impl<K, V, S: BuildHasher, const N: usize> ConcurrentHashMap<K, V, S, N> {
                 shards,
             },
             // .unwrap() requires Debug
+            // this never panics because the iter takes exactly DEFAULT_SHARD_COUNT
             Err(_) => panic!("unable to build inner"),
         }
     }
@@ -356,6 +349,7 @@ impl<K, V, S: BuildHasher, const N: usize> ConcurrentHashMap<K, V, S, N> {
     //            iter: self.into_iter(),
     //        }
     //    }
+
     /// Returns a guarded reference for the value corresponding to the
     /// provided key.
     ///
@@ -463,7 +457,7 @@ impl<K, V, S: BuildHasher, const N: usize> ConcurrentHashMap<K, V, S, N> {
 
         let i = hash as usize % N;
 
-        let mut shard = match self.shards.get(i as usize) {
+        let mut shard = match self.shards.get(i) {
             Some(lock) => lock.write(),
             None => panic!("index out of bounds"),
         };
@@ -578,23 +572,24 @@ where
 //    }
 //}
 
-///// An iterator over the keys of a `ConcurrentHashMap`.
-/////
-///// This `struct` is created by the [`keys`] method on [`ConcurrentHashMap`]. See its
-///// documentation for more.
-/////
-///// [`keys`]: ConcurrentHashMap::keys
-/////
-///// # Example
-/////
-///// ```
-///// use sharded::ConcurrentHashMap;
-/////
-///// let map = ConcurrentHashMap::from([
-/////     ("a", 1),
-///// ]);
-///// let iter_keys = map.keys();
-///// ```
+/**
+// An iterator over the keys of a `ConcurrentHashMap`.
+//
+// This `struct` is created by the ~~ConcurrentHashMap::keys~~ method on [`ConcurrentHashMap`]. See its
+// documentation for more.
+//
+// [`keys`]: ConcurrentHashMap::keys
+//
+// # Example
+//
+// ```
+// use sharded::ConcurrentHashMap;
+//
+// let map = ConcurrentHashMap::from([
+//     ("a", 1),
+// ]);
+// let iter_keys = map.keys();
+// ```
 //pub struct Keys<'a, K: 'a, V: 'a, S: 'a> {
 //    iter: Iter<'a, K, V, S>,
 //}
@@ -612,6 +607,7 @@ where
 //        self.iter.size_hint()
 //    }
 //}
+**/
 
 /// An owning iterator over the entries of a `ConcurrentHashMap`.
 ///
@@ -678,41 +674,41 @@ impl<K, V> Iterator for IntoValues<K, V> {
 }
 
 //
-////scratch work
-////use std::iter::Extend;
-////
-////impl<K, V> Extend<(K, V)> for Map<K, V>
-////where
-////    K: Hash + Eq + Send + Sync + 'static,
-////    V: Send + Sync + 'static,
-////{
-////    fn extend<T>(&mut self, iter: T)
-////    where
-////        T: IntoIterator<Item = (K, V)>,
-////    {
-////        let iter = iter.into_iter();
-////        // iter.size_hint()
-////
-////        let t_handles = Vec::with_capacity(DEFAULT_SHARD_COUNT as usize);
-////        let txs = Vec::with_capacity(DEFAULT_SHARD_COUNT as usize);
-////
-////        for i in 0..DEFAULT_SHARD_COUNT {
-////            let shard = self.shards[i as usize].write().unwrap();
-////            let shard = std::sync::Arc::new(shard);
-////            // ^ need crossbeam probably
-////            let (tx, rx) = std::sync::mpsc::channel();
-////            txs.push(tx);
-////
-////            std::thread::spawn(move || {
-////                for (key, value) in rx {
-////                    shard.insert(key, value);
-////                }
-////            });
-////        }
-////
-////        let (rx, tx) = std::sync::mpsc::channel();
-////    }
-////}
+
+//use std::iter::Extend;
+//
+//impl<K, V> Extend<(K, V)> for Map<K, V>
+//where
+//    K: Hash + Eq + Send + Sync + 'static,
+//    V: Send + Sync + 'static,
+//{
+//    fn extend<T>(&mut self, iter: T)
+//    where
+//        T: IntoIterator<Item = (K, V)>,
+//    {
+//        let iter = iter.into_iter();
+//        // iter.size_hint()
+//
+//        let t_handles = Vec::with_capacity(DEFAULT_SHARD_COUNT as usize);
+//        let txs = Vec::with_capacity(DEFAULT_SHARD_COUNT as usize);
+//
+//        for i in 0..DEFAULT_SHARD_COUNT {
+//            let shard = self.shards[i as usize].write().unwrap();
+//            let shard = std::sync::Arc::new(shard);
+//            // ^ need crossbeam probably
+//            let (tx, rx) = std::sync::mpsc::channel();
+//            txs.push(tx);
+//
+//            std::thread::spawn(move || {
+//                for (key, value) in rx {
+//                    shard.insert(key, value);
+//                }
+//            });
+//        }
+//
+//        let (rx, tx) = std::sync::mpsc::channel();
+//    }
+//}
 
 /// A single shard in the map
 #[derive(Clone)]
@@ -731,6 +727,7 @@ where
     }
 }
 
+#[allow(dead_code)]
 impl<K, V, S> Shard<K, V, S>
 where
     S: BuildHasher,
@@ -794,7 +791,7 @@ where
         K: Hash + Eq,
     {
         match self.inner.get(hash, equivalent_key(key)) {
-            Some(&(_, ref v)) => Some(v),
+            Some((_, v)) => Some(v),
             None => None,
         }
     }
@@ -805,6 +802,15 @@ mod tests {
     use super::*;
     use std::sync::Arc;
     use std::time::Duration;
+
+    #[test]
+    fn test_insert_values() {
+        let map = ConcurrentHashMap::new();
+        {
+            map.insert("k", "v");
+        }
+        assert_eq!(*map.get(&"k").unwrap(), "v");
+    }
 
     #[test]
     fn test_other_deadlock() {
@@ -834,59 +840,3 @@ mod tests {
         std::thread::sleep(Duration::from_secs(10));
     }
 }
-
-//
-//#[cfg(test)]
-//mod tests {
-//    use super::*;
-//
-//    #[test]
-//    fn write_guard_holds_the_lock_and_read_guard_blocks() {
-//        let map = Map::with_capacity(1);
-//        let (key, mut guard) = map.write("");
-//        guard.insert(key, "value");
-//
-//        // since the guard is still held, this should block
-//        assert!(map.try_read(&"").is_none())
-//    }
-//
-//    #[test]
-//    fn read_and_write_with_lock_held() {
-//        let map = Map::with_capacity(1);
-//        let (key, mut guard) = map.write("");
-//        guard.insert(key.clone(), "value");
-//
-//        assert_eq!(guard.get(key), Some(&"value"))
-//    }
-//
-//    #[test]
-//    fn into_iter_yields_one_expected_value() {
-//        let map = Map::with_capacity(1);
-//        map.insert("k1", "v1");
-//        assert_eq!(
-//            map.into_iter().collect::<Vec<_>>().pop().unwrap(),
-//            ("k1", "v1")
-//        );
-//
-//        let map = Map::with_capacity(1);
-//        map.insert("k1", "v1");
-//        assert_eq!(map.into_values().collect::<Vec<_>>().pop().unwrap(), "v1");
-//    }
-//
-//    #[test]
-//    fn into_iter_has_4_iters() {
-//        let map = Map::with_capacity(4);
-//        map.insert("k1", "v1");
-//        map.insert("k2", "v2");
-//        map.insert("k3", "v3");
-//        map.insert("k4", "v4");
-//        assert_eq!(map.into_iter().map(|_| 1).sum::<u32>(), 4);
-//
-//        let map = Map::with_capacity(4);
-//        map.insert("k1", "v1");
-//        map.insert("k2", "v2");
-//        map.insert("k3", "v3");
-//        map.insert("k4", "v4");
-//        assert_eq!(map.into_values().map(|_| 1).sum::<u32>(), 4);
-//    }
-//}
