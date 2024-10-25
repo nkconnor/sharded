@@ -1,5 +1,8 @@
 _**Note: This crate is still in early development and undergoing API changes.** Contributions, feature requests, and
-constructive feedback are warmly welcomed._
+constructive feedback are warmly welcomed._ 
+
+v0.3 is in progress and contains a lot of API changes, but, drastically simplifies
+the API and has great performance. Please point directly to the master branch and help me fill out the API for `ConcurrentHashMap`!
 
 ## sharded &emsp; ![Build] ![Crate]
 
