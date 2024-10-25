@@ -8,7 +8,7 @@
 //!
 //! ## Features
 //!
-//! * **Zero unsafe code.** This library uses `#![deny(unsafe_code)]` and was motivated by
+//! * **Zero unsafe code.** This library uses `#![forbid(unsafe_code)]` and was motivated by
 //!     the complexity and amount of memory errors present in many alternatives.
 //!
 //! * **Intuitive API.** Uses similar or same methods as `std` when possible.
@@ -95,7 +95,7 @@
 //! Unless you explicitly state otherwise, any contribution intentionally submitted
 //! for inclusion in `sharded` by you, as defined in the Apache-2.0 license, shall be
 //! dual licensed as above, without any additional terms or conditions.
-#![deny(unsafe_code)]
+#![forbid(unsafe_code)]
 
 use hashbrown::raw::{RawIntoIter, RawTable};
 use parking_lot::{MappedRwLockReadGuard, RwLock, RwLockReadGuard};
