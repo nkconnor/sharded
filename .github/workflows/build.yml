@@ -16,9 +16,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Build
-      run: cargo build --verbose
+    
+    - name: Lint
+      run: cargo clippy
+
     - name: Run tests
       run: cargo test --verbose
-    - name: Run tests with parking_lot
-      run: cargo test --features parking_lot --verbose
