@@ -1,3 +1,6 @@
+//! _**Note: This crate is still in early development and undergoing API changes.** Contributions,
+//! feature requests, and constructive feedback are warmly welcomed._
+//!
 //! # sharded &emsp; ![Build] ![Crate]
 //!
 //! [Build]: https://github.com/nkconnor/sharded/workflows/build/badge.svg
@@ -6,24 +9,24 @@
 //! **Sharded provides safe, fast, and obvious concurrent collections in Rust**. This crate splits the
 //! underlying collection into `N shards` each with its own lock.
 //!
+//! For further reading on the strategy, see a [write up on C++'s `parallel-hashmap`](https://greg7mdp.github.io/parallel-hashmap/).
+//!
 //! ## Features
 //!
 //! * **Zero unsafe code.** This library uses `#![forbid(unsafe_code)]` and was motivated by
 //!     the complexity and amount of memory errors present in many alternatives.
 //!
-//! * **Intuitive API.** Uses similar or same methods as `std` when possible.
-//!
-//! * **Small footprint.** The core logic is <100 lines of code. The only dependencies are
-//!     `hashbrown` (which `std` uses) and `parking_lot`.
+//! * **Tiny footprint.** The core logic is <100 lines of code. The two dependencies are
+//!     `hashbrown` and `parking_lot`.
 //!
 //! * **Really fast.** This implementation may be a more performant choice than some
 //!     of the most popular concurrent hashmaps out there. Try it on your workload and let us know.
 //!
-//! ### See Also
+//! ## See Also
 //!
 //! - **[contrie](https://crates.io/crates/contrie)** - A concurrent hash-trie map & set.
 //! - **[dashmap](https://github.com/xacrimon/dashmap)** - Blazing fast concurrent HashMap for Rust.
-//! - **[flurry](https://github.com/jonhoo/flurry)** - A port of Java's `java.util.concurrent.ConcurrentHashMap` to Rust. (Also part of a live stream series)
+//! - **[flurry](https://github.com/jonhoo/flurry)** - A port of Java's `java.util.concurrent.ConcurrentHashMap` to Rust.
 //!
 //! ## Quick Start
 //!
@@ -31,7 +34,8 @@
 //! [dependencies]
 //! sharded = "0.3"
 //! ```
-//! ### Examples
+//!
+//! ## Examples
 //!
 //! **Insert and retrieve values**
 //!
@@ -40,23 +44,6 @@
 //! let users = ConcurrentHashMap::new();
 //! users.insert(32, "Henry");
 //! assert_eq!(&"Henry", users.get(32).unwrap());
-//! ```
-//!
-//! ```
-//! **Determine if a method will block**
-//!
-//! `try_get`, `try_insert`, etc, are available for avoiding blocks or situations that could
-//! deadlock.
-//!
-//! ```
-//! # use sharded::ConcurrentHashMap;
-//! # let tokens = ConcurrentHashMap::new();
-//! # tokens.insert(32, "tokendata");
-//! # struct WouldBlock;
-//! match tokens.try_get(&32) {
-//!     Some(token) => Ok(token),
-//!     None => Err(WouldBlock)
-//! };
 //! ```
 //!
 //! ## Performance Comparison

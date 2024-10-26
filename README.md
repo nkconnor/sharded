@@ -1,31 +1,28 @@
-_**Note: This crate is still in early development and undergoing API changes.** Contributions, feature requests, and
-constructive feedback are warmly welcomed._ 
-
-v0.3 is in progress and contains a lot of API changes, but, drastically simplifies
-the API and has great performance. Please point directly to the master branch and help me fill out the API for `ConcurrentHashMap`!
+_**Note: This crate is still in early development and undergoing API changes.** Contributions,
+feature requests, and constructive feedback are warmly welcomed._
 
 ## sharded &emsp; ![Build] ![Crate]
 
-[build]: https://github.com/nkconnor/sharded/workflows/build/badge.svg
-[crate]: https://img.shields.io/crates/v/sharded
+[Build]: https://github.com/nkconnor/sharded/workflows/build/badge.svg
+[Crate]: https://img.shields.io/crates/v/sharded
 
 **Sharded provides safe, fast, and obvious concurrent collections in Rust**. This crate splits the
 underlying collection into `N shards` each with its own lock.
+
 For further reading on the strategy, see a [write up on C++'s `parallel-hashmap`](https://greg7mdp.github.io/parallel-hashmap/).
 
 ### Features
 
-- **Zero unsafe code.** This library uses `#![forbid(unsafe_code)]` and was motivated by
-  the complexity and amount of memory errors present in many alternatives.
+* **Zero unsafe code.** This library uses `#![forbid(unsafe_code)]` and was motivated by
+    the complexity and amount of memory errors present in many alternatives.
 
-- **Tiny footprint.** The core logic is ~100 lines of code. This may build up over time as utilities
-  and ergonomics are added. `hashbrown` and `parking_lot` are the two
-  dependencies.
+* **Tiny footprint.** The core logic is <100 lines of code. The two dependencies are
+    `hashbrown` and `parking_lot`.
 
-- **Really fast.** This implementation may be a more performant choice than some
-  of the most popular concurrent hashmaps out there. Try it on your workload and let us know.
+* **Really fast.** This implementation may be a more performant choice than some
+    of the most popular concurrent hashmaps out there. Try it on your workload and let us know.
 
-#### See Also
+### See Also
 
 - **[contrie](https://crates.io/crates/contrie)** - A concurrent hash-trie map & set.
 - **[dashmap](https://github.com/xacrimon/dashmap)** - Blazing fast concurrent HashMap for Rust.
@@ -38,18 +35,14 @@ For further reading on the strategy, see a [write up on C++'s `parallel-hashmap`
 sharded = "0.3"
 ```
 
-#### Examples
+### Examples
 
-**Insert a key value pair**
+**Insert and retrieve values**
 
 ```rust
 let users = ConcurrentHashMap::new();
 users.insert(32, "Henry");
-```
-
-**Get a value by key**
-```rust
-assert_eq!(map.get(&32), Some(&"Henry"));
+assert_eq!(&"Henry", users.get(32).unwrap());
 ```
 
 ### Performance Comparison
@@ -74,7 +67,7 @@ a lot slower). If you know why `chashmap` is so slow in this test, please help h
 Many thanks to
 
 - [Reddit community](https://www.reddit.com/r/rust) for a few pointers and
-  some motivation to take this project further.
+some motivation to take this project further.
 
 - [Jon Gjengset](https://github.com/jonhoo) for the live streams and utility crates involved
 
