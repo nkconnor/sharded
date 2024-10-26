@@ -9,8 +9,6 @@ repository = "https://github.com/nkconnor/sharded"
 documentation = "https://docs.rs/sharded"
 readme = "README.md"
 
-[lib]
-doctest = false
 
 [dependencies]
 hashbrown = {version="0.12", features=["inline-more", "raw"], default-features=false}
