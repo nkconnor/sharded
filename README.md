@@ -19,8 +19,8 @@ For further reading on the strategy, see a [write up on C++'s `parallel-hashmap`
   the complexity and amount of memory errors present in many alternatives.
 
 - **Tiny footprint.** The core logic is ~100 lines of code. This may build up over time as utilities
-  and ergonomics are added. By default, the library only uses `std` and `hashbrown`. If you'd like to pull in some community
-  crates such as `parking_lot`, `ahash`, etc.. just use add the corresponding feature.
+  and ergonomics are added. `hashbrown` and `parking_lot` are the two
+  dependencies.
 
 - **Really fast.** This implementation may be a more performant choice than some
   of the most popular concurrent hashmaps out there. Try it on your workload and let us know.
@@ -29,7 +29,7 @@ For further reading on the strategy, see a [write up on C++'s `parallel-hashmap`
 
 - **[contrie](https://crates.io/crates/contrie)** - A concurrent hash-trie map & set.
 - **[dashmap](https://github.com/xacrimon/dashmap)** - Blazing fast concurrent HashMap for Rust.
-- **[flurry](https://github.com/jonhoo/flurry)** - A port of Java's `java.util.concurrent.ConcurrentHashMap` to Rust. (Also part of a live stream series)
+- **[flurry](https://github.com/jonhoo/flurry)** - A port of Java's `java.util.concurrent.ConcurrentHashMap` to Rust.
 
 ### Quick Start
 
@@ -45,6 +45,11 @@ sharded = "0.3"
 ```rust
 let users = ConcurrentHashMap::new();
 users.insert(32, "Henry");
+```
+
+**Get a value by key**
+```rust
+assert_eq!(map.get(&32), Some(&"Henry"));
 ```
 
 ### Performance Comparison
