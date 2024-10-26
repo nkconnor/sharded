@@ -129,28 +129,6 @@ where
     move |val| make_hash::<K, S>(hash_builder, &val.0)
 }
 
-//#[inline]
-//fn to_read_guard_iter<'a, K, V, S>(
-//    guard: RwLockReadGuard<'a, Shard<K, V, S>>,
-//) -> MappedRwLockReadGuard<'a, RawIter<(K, V)>> {
-//    RwLockReadGuard::map(guard, |guard| {
-//        // # Safety
-//        //
-//        // From `hashbrown`:
-//        // > Returns an iterator over every element in the table. It is up to
-//        // > the caller to ensure that the `RawTable` outlives the `RawIter`.
-//        // > Because we cannot make the `next` method unsafe on the `RawIter`
-//        // > struct, we have to make the `iter` method unsafe.
-//        //
-//        // We give Iter lifetime 'i and our lifetime for `RawTable` 's,
-//        // which lives _at least_ as long as 'i
-//        #[allow(unsafe_code)]
-//        unsafe {
-//            &guard.inner.iter()
-//        }
-//    })
-//}
-
 /// A concurrent lock-based `HashMap` based on `hashbrown` and `parking_lot`.
 pub struct ConcurrentHashMap<K, V, S = RandomState, const N: usize = DEFAULT_SHARD_COUNT> {
     hash_builder: S,
@@ -298,45 +276,6 @@ impl<K, V, S: BuildHasher, const N: usize> ConcurrentHashMap<K, V, S, N> {
         self.shards.first().unwrap().read().inner.capacity()
     }
 
-    ///// An iterator visiting all key-value pairs in arbitrary order.
-    ///// The iterator element type is `(&'a K, &'a V)`.
-    /////
-    ///// **Locks** - [`Iter`] acquires a read lock on one of the `N` shards at a time.
-    /////
-    ///// # Examples
-    /////
-    ///// ```
-    ///// use sharded::ConcurrentHashMap;
-    /////
-    ///// let map = ConcurrentHashMap::from([
-    /////     ("a", 1),
-    /////     ("b", 2),
-    /////     ("c", 3),
-    ///// ]);
-    /////
-    ///// for key in map.keys() {
-    /////     println!("{key}");
-    ///// }
-    ///// ```
-    //pub fn iter<'i, 's: 'i>(&'s self) -> Iter<'i, K, V, S> {
-    //    let first = self.shards.first().unwrap();
-
-    //    let iter = to_read_guard_iter(first.read());
-
-    //    let rest = self.shards.split_at(1).1.iter().collect();
-
-    //    Iter { iter, rest }
-    //}
-
-    //    /// Creates a consuming iterator, that is, one that moves each key-value
-    //    /// pair out of the map in arbitrary order. The map cannot be used after
-    //    /// calling this. Yields the values of the map.
-    //    pub fn into_values(self) -> IntoValues<K, V> {
-    //        IntoValues {
-    //            iter: self.into_iter(),
-    //        }
-    //    }
-
     /// Returns a guarded reference for the value corresponding to the
     /// provided key.
     ///
@@ -377,62 +316,6 @@ impl<K, V, S: BuildHasher, const N: usize> ConcurrentHashMap<K, V, S, N> {
         .ok()
     }
 
-    //    /// Applies given function to the value if it exists,
-    //    /// otherwise returns `None`.
-    //    #[inline]
-    //    pub fn get_then<'a, U, F>(&'a self, key: &'a K, func: F) -> Option<U>
-    //    where
-    //        K: Hash + Eq,
-    //        F: FnOnce(&V) -> U,
-    //    {
-    //        let hash = make_hash::<K, _>(&self.hash_builder, key);
-    //
-    //        let i = (hash as usize) % N;
-    //
-    //        let shard = match self.shards.get(i) {
-    //            Some(lock) => lock.read(),
-    //            None => panic!("index out of bounds"),
-    //        };
-    //
-    //        shard
-    //            .inner
-    //            .get(hash, equivalent_key(key))
-    //            .map(|kv| func(&kv.1))
-    //    }
-    //
-    //    /// Returns a cloned value corresponding to the provided key
-    //    #[inline]
-    //    pub fn get_owned<'a>(&'a self, key: &'a K) -> Option<V>
-    //    where
-    //        K: Eq + Hash,
-    //        V: Clone,
-    //    {
-    //        let (key, shard) = self.read(key);
-    //        shard.get(key).cloned()
-    //    }
-
-    ///// Does the map contain the provided key
-    //#[inline]
-    //pub fn contains<'a>(&'a self, key: &'a K) -> bool
-    //where
-    //    K: Eq + Hash,
-    //{
-    //    let (key, shard) = self.read(key);
-    //    shard.get(key).is_some()
-    //}
-
-    ///// Number of elements in the map
-    //#[inline]
-    //pub fn len(&self) -> usize {
-    //    return self.shards.iter().map(|x| x.read().len()).sum();
-    //}
-
-    ///// Is `len == 0`
-    //#[inline]
-    //pub fn is_empty(&self) -> bool {
-    //    self.len() == 0
-    //}
-
     /// Insert a key value pair into the Map. Returns the existing
     /// value at the provided key if there was one.
     #[inline]
@@ -451,23 +334,6 @@ impl<K, V, S: BuildHasher, const N: usize> ConcurrentHashMap<K, V, S, N> {
 
         shard.insert(hash, k, v)
     }
-
-    ///// Remove using the provided key. Returns the existing value, if any.
-    //pub fn remove(&self, k: K) -> Option<V>
-    //where
-    //    K: Hash + Eq,
-    //{
-    //    let hash = make_hash::<K, _>(&self.hash_builder, &k);
-
-    //    let i = hash as usize % N;
-
-    //    let shard = match self.shards.get(i as usize) {
-    //        Some(lock) => lock.write(),
-    //        None => panic!("index out of bounds"),
-    //    };
-
-    //    shard.remove(hash, k)
-    //}
 }
 
 impl<K, V, S, const N: usize> Default for ConcurrentHashMap<K, V, S, N>
@@ -484,117 +350,6 @@ where
         ConcurrentHashMap::<K, V, S, N>::with_hasher(Default::default())
     }
 }
-//
-//impl<K: 'static, V: 'static> IntoIterator for Map<K, V> {
-//    type IntoIter = IntoIter<K, V>;
-//
-//    type Item = (K, V);
-//
-//    /// Creates a consuming iterator, that is, one that moves each key-value
-//    /// pair out of the map in arbitrary order. The map cannot be used after
-//    /// calling this.
-//    fn into_iter(self) -> IntoIter<K, V> {
-//        let shards: Vec<_> = self.shards.into();
-//
-//        let mut shards: Vec<Shard<K, V>> = shards.into_iter().map(|s| s.into_inner()).collect();
-//
-//        IntoIter {
-//            iter: shards.pop().unwrap().inner.into_iter(),
-//            shards,
-//        }
-//    }
-//}
-//
-
-///// An iterator over the entries of a `ConcurrentHashMap`.
-/////
-///// This `struct` is created by the [`iter`] method on [`ConcurrentHashMap`]. See its
-///// documentation for more.
-/////
-///// [`iter`]: ConcurrentHashMap::iter
-/////
-///// # Example
-/////
-///// ```
-///// use sharded::ConcurrentHashMap;
-/////
-///// let map = ConcurrentHashMap::from([
-/////     ("a", 1),
-///// ]);
-///// let iter = map.iter();
-///// ```
-//pub struct Iter<'a, K: 'a, V: 'a, S: 'a> {
-//    iter: MappedRwLockReadGuard<'a, RawIter<(K, V)>>,
-//    rest: Vec<&'a RwLock<Shard<K, V, S>>>,
-//}
-
-//impl<'a, K, V, S> Iterator for Iter<'a, K, V, S> {
-//    type Item = (&'a K, &'a V);
-//
-//    #[inline]
-//    fn next(&mut self) -> Option<(&'a K, &'a V)> {
-//        // Avoid `Option::map` because it bloats LLVM IR.
-//        match self.iter.next() {
-//            #[allow(unsafe_code)]
-//            // # Safety
-//            // Guard is held and we are still guaranteed
-//            // that RawTable outlives the bucket ref
-//            Some(x) => unsafe {
-//                let r = x.as_ref();
-//                Some((&r.0, &r.1))
-//            },
-//            None => match self.rest.pop() {
-//                Some(s) => {
-//                    self.iter = to_read_guard_iter(s.read());
-//                    self.next()
-//                }
-//                None => None,
-//            },
-//        }
-//    }
-//
-//    #[inline]
-//    fn size_hint(&self) -> (usize, Option<usize>) {
-//        (self.iter.size_hint().0, None)
-//    }
-//}
-
-/**
-// An iterator over the keys of a `ConcurrentHashMap`.
-//
-// This `struct` is created by the ~~ConcurrentHashMap::keys~~ method on [`ConcurrentHashMap`]. See its
-// documentation for more.
-//
-// [`keys`]: ConcurrentHashMap::keys
-//
-// # Example
-//
-// ```
-// use sharded::ConcurrentHashMap;
-//
-// let map = ConcurrentHashMap::from([
-//     ("a", 1),
-// ]);
-// let iter_keys = map.keys();
-// ```
-//pub struct Keys<'a, K: 'a, V: 'a, S: 'a> {
-//    iter: Iter<'a, K, V, S>,
-//}
-//
-//impl<'a, K, V, S> Iterator for Keys<'a, K, V, S> {
-//    type Item = &'a K;
-//
-//    #[inline]
-//    fn next(&mut self) -> Option<&'a K> {
-//        self.iter.next().map(|pair| pair.0)
-//    }
-//
-//    #[inline]
-//    fn size_hint(&self) -> (usize, Option<usize>) {
-//        self.iter.size_hint()
-//    }
-//}
-**/
 
 /// An owning iterator over the entries of a `ConcurrentHashMap`.
 ///
@@ -659,43 +414,6 @@ impl<K, V> Iterator for IntoValues<K, V> {
         (self.iter.size_hint().0, None)
     }
 }
-
-//
-
-//use std::iter::Extend;
-//
-//impl<K, V> Extend<(K, V)> for Map<K, V>
-//where
-//    K: Hash + Eq + Send + Sync + 'static,
-//    V: Send + Sync + 'static,
-//{
-//    fn extend<T>(&mut self, iter: T)
-//    where
-//        T: IntoIterator<Item = (K, V)>,
-//    {
-//        let iter = iter.into_iter();
-//        // iter.size_hint()
-//
-//        let t_handles = Vec::with_capacity(DEFAULT_SHARD_COUNT as usize);
-//        let txs = Vec::with_capacity(DEFAULT_SHARD_COUNT as usize);
-//
-//        for i in 0..DEFAULT_SHARD_COUNT {
-//            let shard = self.shards[i as usize].write().unwrap();
-//            let shard = std::sync::Arc::new(shard);
-//            // ^ need crossbeam probably
-//            let (tx, rx) = std::sync::mpsc::channel();
-//            txs.push(tx);
-//
-//            std::thread::spawn(move || {
-//                for (key, value) in rx {
-//                    shard.insert(key, value);
-//                }
-//            });
-//        }
-//
-//        let (rx, tx) = std::sync::mpsc::channel();
-//    }
-//}
 
 /// A single shard in the map
 #[derive(Clone)]
