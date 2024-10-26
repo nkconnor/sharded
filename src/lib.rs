@@ -235,12 +235,12 @@ impl<K, V, S: BuildHasher, const N: usize> ConcurrentHashMap<K, V, S, N> {
         S: Clone,
     {
         // per shard capacity
-        let capacity = (capacity + DEFAULT_SHARD_COUNT - 1) / DEFAULT_SHARD_COUNT;
+        let capacity = (capacity + N - 1) / N;
 
         let shards: Vec<RwLock<Shard<K, V, S>>> =
             std::iter::repeat(|| RawTable::with_capacity(capacity))
                 .map(|f| f())
-                .take(DEFAULT_SHARD_COUNT)
+                .take(N)
                 .map(|inner| {
                     RwLock::new(Shard {
                         inner,
@@ -273,7 +273,13 @@ impl<K, V, S: BuildHasher, const N: usize> ConcurrentHashMap<K, V, S, N> {
     /// ```
     #[inline]
     pub fn capacity(&self) -> usize {
-        self.shards.first().unwrap().read().inner.capacity()
+        self.shards
+            .first()
+            .expect("at least one shard present")
+            .read()
+            .inner
+            .capacity()
+            * N
     }
 
     /// Returns a guarded reference for the value corresponding to the
@@ -507,6 +513,12 @@ mod tests {
     use super::*;
     use std::sync::Arc;
     use std::time::Duration;
+
+    #[test]
+    fn test_apprx_capacity() {
+        let _map: ConcurrentHashMap<usize, usize, RandomState, 120> =
+            ConcurrentHashMap::with_capacity_and_hasher(1000, RandomState::new());
+    }
 
     #[test]
     fn test_insert_values() {
